@@ -1,0 +1,1228 @@
+<meta charset="utf-8" />
+<title>The Mode Sportsbook</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @font-face {
+    font-family: 'Archivo Black';
+    src: url(data:font/woff2;base64,__ARCHIVO_B64__) format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Inter';
+    src: url(data:font/woff2;base64,__INTER_B64__) format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url(data:font/woff2;base64,__JBMONO_B64__) format('woff2');
+    font-weight: 100 800;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* TOKENS                                                            */
+  /* ---------------------------------------------------------------- */
+  :root {
+    --bg: #f3f5fb;
+    --surface: #ffffff;
+    --surface-2: #eef1f8;
+    --surface-3: #e3e8f4;
+    --border: #d8deec;
+    --text: #10151f;
+    --text-dim: #5b6478;
+    --text-faint: #8891a5;
+
+    --accent: #2f6fed;
+    --accent-soft: #e7eefd;
+    --on-accent: #ffffff;
+
+    --positive: #0ea968;
+    --positive-soft: #e2f7ee;
+    --on-positive: #ffffff;
+
+    --warn: #b5720a;
+    --warn-soft: #fbeed9;
+
+    --danger: #dc2626;
+
+    --shadow-1: 0 1px 2px rgba(16, 21, 31, 0.06);
+    --shadow-2: 0 10px 28px rgba(16, 21, 31, 0.08);
+
+    --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #080c15;
+      --surface: #111a2c;
+      --surface-2: #182339;
+      --surface-3: #202d48;
+      --border: #283252;
+
+      --text: #eef2fb;
+      --text-dim: #8d97b3;
+      --text-faint: #5c6684;
+
+      --accent: #4c85ff;
+      --accent-soft: #16233f;
+      --on-accent: #06122b;
+
+      --positive: #22dd94;
+      --positive-soft: #0f2c22;
+      --on-positive: #04160f;
+
+      --warn: #f5ac2e;
+      --warn-soft: #3a2a0d;
+
+      --danger: #ff6b7a;
+
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+      --shadow-2: 0 16px 36px rgba(0, 0, 0, 0.45);
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #080c15;
+    --surface: #111a2c;
+    --surface-2: #182339;
+    --surface-3: #202d48;
+    --border: #283252;
+
+    --text: #eef2fb;
+    --text-dim: #8d97b3;
+    --text-faint: #5c6684;
+
+    --accent: #4c85ff;
+    --accent-soft: #16233f;
+    --on-accent: #06122b;
+
+    --positive: #22dd94;
+    --positive-soft: #0f2c22;
+    --on-positive: #04160f;
+
+    --warn: #f5ac2e;
+    --warn-soft: #3a2a0d;
+
+    --danger: #ff6b7a;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-2: 0 16px 36px rgba(0, 0, 0, 0.45);
+
+    color-scheme: dark;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* RESET / BASE                                                      */
+  /* ---------------------------------------------------------------- */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  button { font-family: inherit; }
+  ::selection { background: var(--accent-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  a { color: inherit; }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ---------------------------------------------------------------- */
+  /* HEADER                                                            */
+  /* ---------------------------------------------------------------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    text-decoration: none;
+  }
+  .wordmark-mark {
+    font-family: var(--font-display);
+    font-size: 21px;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .wordmark-mark span { color: var(--accent); }
+  .wordmark-tag {
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 600;
+    white-space: nowrap;
+    display: none;
+  }
+  @media (min-width: 620px) { .wordmark-tag { display: inline; } }
+
+  .play-money-badge {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .play-money-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--positive);
+    flex: none;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  .tab-btn {
+    appearance: none;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    padding: 11px 6px 10px;
+    margin-right: 18px;
+    cursor: pointer;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-btn:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* LAYOUT                                                            */
+  /* ---------------------------------------------------------------- */
+  .layout {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  @media (min-width: 960px) {
+    .layout { grid-template-columns: minmax(0, 1fr) 336px; align-items: start; }
+  }
+
+  .board { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .view { display: none; flex-direction: column; gap: 16px; }
+  .view.active { display: flex; }
+
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 4px 2px 0;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* GAME CARD                                                         */
+  /* ---------------------------------------------------------------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-1);
+    overflow: hidden;
+  }
+
+  .game-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .game-card-head .matchup-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+  .game-card-head .total-proj {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+  }
+
+  .market-cols-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 92px 92px 92px;
+    padding: 8px 16px 4px;
+    gap: 8px;
+  }
+  .market-cols-head span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    text-align: center;
+  }
+  .market-cols-head span:first-child { text-align: left; visibility: hidden; }
+
+  .team-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 92px 92px 92px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+  }
+  .team-row + .team-row { border-top: 1px dashed var(--border); }
+
+  .team-id { min-width: 0; }
+  .team-name {
+    font-weight: 700;
+    font-size: 14.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .team-proj {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* PILLS                                                             */
+  /* ---------------------------------------------------------------- */
+  .pill {
+    appearance: none;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 4px;
+    cursor: pointer;
+    color: var(--text);
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+  }
+  .pill:hover { background: var(--surface-3); }
+  .pill:active { transform: scale(0.97); }
+  .pill.selected {
+    background: var(--positive);
+    border-color: var(--positive);
+    color: var(--on-positive);
+  }
+  .pill .pill-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    opacity: 0.75;
+  }
+  .pill .pill-odds {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .pill.wide { flex-direction: row; justify-content: space-between; padding: 9px 12px; }
+  .pill.wide .pill-label { font-size: 12.5px; font-weight: 700; opacity: 1; }
+  .pill.wide .pill-odds { font-size: 13px; }
+  .pill.wide.odds-pill { justify-content: center; }
+  .pill.wide.odds-pill .pill-odds { font-size: 14px; }
+
+  /* ---------------------------------------------------------------- */
+  /* EXPANDER / PROPS                                                  */
+  /* ---------------------------------------------------------------- */
+  .expander-toggle {
+    appearance: none;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .expander-toggle:hover { background: var(--surface-2); }
+  .expander-toggle .chev { transition: transform 0.15s ease; }
+  .card.expanded .expander-toggle .chev { transform: rotate(180deg); }
+
+  .expander-body {
+    display: none;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+    padding: 14px 16px 16px;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .card.expanded .expander-body { display: flex; }
+
+  .prop-block-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0 0 8px;
+  }
+
+  .prop-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
+  @media (min-width: 640px) { .prop-grid { grid-template-columns: 1fr 1fr; } }
+
+  .prop-team-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .prop-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .prop-row:last-child { border-bottom: none; }
+
+  .prop-info { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .pos-tag {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-faint);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 4px;
+    flex: none;
+  }
+  .prop-name {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .q-chip {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--warn);
+    background: var(--warn-soft);
+    border-radius: 4px;
+    padding: 1px 4px;
+    flex: none;
+  }
+  .prop-line {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    flex: none;
+  }
+  .prop-pills { display: flex; gap: 6px; flex: none; }
+  .prop-pills .pill { width: 58px; padding: 5px 2px; }
+
+  .chip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .chip-pill {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text);
+    text-align: left;
+  }
+  .chip-pill:hover { background: var(--surface-3); }
+  .chip-pill.selected { background: var(--positive); border-color: var(--positive); color: var(--on-positive); }
+  .chip-pill .chip-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip-pill .chip-odds { font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; flex: none; }
+
+  /* ---------------------------------------------------------------- */
+  /* FUTURES                                                           */
+  /* ---------------------------------------------------------------- */
+  .futures-card { padding: 16px; }
+  .futures-card h2 {
+    font-family: var(--font-display);
+    font-size: 15px;
+    margin: 0 0 3px;
+    letter-spacing: 0.01em;
+  }
+  .futures-card .sub {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin: 0 0 14px;
+  }
+
+  .fut-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .fut-row:last-child { border-bottom: none; }
+  .fut-rank {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    width: 20px;
+    flex: none;
+  }
+  .fut-team { flex: 1; min-width: 0; }
+  .fut-team-name { font-size: 13.5px; font-weight: 700; }
+  .fut-team-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+  .fut-row .pill { width: 84px; flex: none; }
+  .fut-row .pill.wide { width: auto; min-width: 84px; }
+
+  .wt-team-block + .wt-team-block { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .wt-lines { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .wt-line { display: flex; flex-direction: column; gap: 4px; }
+  .wt-line-label { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-faint); text-align: center; }
+  .wt-line .pill-pair { display: flex; gap: 4px; }
+
+  .po-yesno { display: flex; gap: 6px; flex: none; }
+  .po-yesno .pill { width: 56px; }
+
+  .futures-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 720px) { .futures-grid { grid-template-columns: 1fr 1fr; } }
+
+  /* ---------------------------------------------------------------- */
+  /* BET SLIP                                                          */
+  /* ---------------------------------------------------------------- */
+  .slip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-2);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 40px);
+  }
+  @media (min-width: 960px) { .slip { position: sticky; top: 88px; } }
+
+  .slip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .slip-head h2 {
+    font-family: var(--font-display);
+    font-size: 14px;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .slip-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 2px 7px;
+    border-radius: 100px;
+    margin-left: 8px;
+  }
+  .slip-clear {
+    background: none;
+    border: none;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .slip-clear:hover { color: var(--danger); }
+
+  .slip-legs {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 60px;
+    padding: 6px 10px;
+  }
+  .slip-empty {
+    padding: 30px 16px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+
+  .slip-leg {
+    padding: 10px 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .slip-leg:last-child { border-bottom: none; }
+  .slip-leg-main { flex: 1; min-width: 0; }
+  .slip-leg-market { font-size: 10.5px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .slip-leg-sel { font-size: 13px; font-weight: 700; margin-top: 1px; }
+  .slip-leg-game { font-size: 11px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slip-leg-odds { font-family: var(--font-mono); font-size: 13px; font-weight: 700; flex: none; padding-top: 1px; }
+  .slip-leg-remove {
+    background: none; border: none; cursor: pointer; color: var(--text-faint);
+    font-size: 15px; line-height: 1; padding: 2px 4px; flex: none;
+  }
+  .slip-leg-remove:hover { color: var(--danger); }
+
+  .slip-foot {
+    border-top: 1px solid var(--border);
+    padding: 12px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .stake-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .stake-row label { font-size: 12.5px; font-weight: 700; color: var(--text-dim); }
+  .stake-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+  .stake-input-wrap span { color: var(--text-faint); font-size: 13px; }
+  .stake-input-wrap input {
+    width: 68px;
+    border: none;
+    background: none;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: right;
+  }
+  .stake-input-wrap input:focus { outline: none; }
+
+  .slip-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+  .slip-summary-row strong {
+    font-family: var(--font-mono);
+    color: var(--text);
+    font-size: 13.5px;
+  }
+
+  .place-bet-btn {
+    appearance: none;
+    border: none;
+    background: var(--positive);
+    color: var(--on-positive);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+  .place-bet-btn:hover { filter: brightness(1.05); }
+  .place-bet-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .place-bet-btn.confirmed { background: var(--accent); }
+
+  .disclaimer {
+    font-size: 10.5px;
+    color: var(--text-faint);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* mobile floating slip button */
+  .slip-fab {
+    display: none;
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 50;
+    background: var(--accent);
+    color: var(--on-accent);
+    border: none;
+    border-radius: 100px;
+    padding: 14px 18px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: var(--shadow-2);
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .slip-fab .fab-odds { font-family: var(--font-mono); }
+  @media (max-width: 959px) {
+    .slip-fab.show { display: flex; }
+    .slip-rail { display: none; }
+    .slip-rail.mobile-open {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(0,0,0,0.4);
+      padding: 12vh 12px 12px;
+    }
+    .slip-rail.mobile-open .slip { max-height: 80vh; margin: 0 auto; max-width: 440px; }
+    .mobile-slip-close {
+      display: block; width: 100%; text-align: center; padding: 10px;
+      background: none; border: none; color: var(--text-faint); font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+  }
+  @media (min-width: 960px) { .mobile-slip-close { display: none; } }
+
+  @media (max-width: 480px) {
+    .game-card-head, .market-cols-head, .team-row { padding-left: 12px; padding-right: 12px; }
+    .market-cols-head, .team-row { grid-template-columns: minmax(0, 1fr) 72px 72px 72px; gap: 6px; }
+    .team-name { font-size: 13px; }
+    .pill { padding: 5px 2px; }
+    .pill .pill-label { font-size: 9px; }
+    .pill .pill-odds { font-size: 11.5px; }
+    .fut-row .pill { width: 74px; }
+  }
+
+  .footer-note {
+    max-width: 1280px;
+    margin: 8px auto 40px;
+    padding: 0 20px;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    text-align: center;
+  }
+</style>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="wordmark" href="#" onclick="return false;">
+      <span class="wordmark-mark">THE MODE<span>.</span></span>
+      <span class="wordmark-tag">Sportsbook &middot; Week 1</span>
+    </a>
+    <div class="play-money-badge"><span class="dot"></span>Play money only</div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-view="matchups" type="button">This Week</button>
+    <button class="tab-btn" data-view="futures" type="button">Season Futures</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="board">
+    <div id="view-matchups" class="view active"></div>
+    <div id="view-futures" class="view"></div>
+  </div>
+
+  <div class="slip-rail" id="slip-rail">
+    <div class="slip">
+      <button class="mobile-slip-close" id="mobile-slip-close" type="button">Close</button>
+      <div class="slip-head">
+        <h2>Bet Slip<span class="slip-count" id="slip-count">0</span></h2>
+        <button class="slip-clear" id="slip-clear" type="button">Clear all</button>
+      </div>
+      <div class="slip-legs" id="slip-legs">
+        <div class="slip-empty">Your slip is empty.<br />Click any odds to add a pick.</div>
+      </div>
+      <div class="slip-foot" id="slip-foot" style="display:none;">
+        <div class="slip-summary-row" id="parlay-odds-row" style="display:none;">
+          <span>Parlay odds</span>
+          <strong id="parlay-odds-val">&mdash;</strong>
+        </div>
+        <div class="stake-row">
+          <label for="stake-input">Stake</label>
+          <div class="stake-input-wrap">
+            <span>$</span>
+            <input id="stake-input" type="number" min="1" step="1" value="10" inputmode="numeric" />
+          </div>
+        </div>
+        <div class="slip-summary-row">
+          <span>To win</span>
+          <strong id="to-win-val">$0.00</strong>
+        </div>
+        <div class="slip-summary-row">
+          <span>Total payout</span>
+          <strong id="payout-val">$0.00</strong>
+        </div>
+        <button class="place-bet-btn" id="place-bet-btn" type="button">Place bet</button>
+        <div class="disclaimer">For The Mode league bragging rights only.<br />No real money is wagered or collected.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="slip-fab" id="slip-fab" type="button">
+  <span id="fab-count">0 picks</span>
+  <span class="fab-odds tabular" id="fab-odds">&mdash;</span>
+</button>
+
+<div class="footer-note">
+  Odds generated by <code>odds_model.py</code> from Week 1 starter projections &middot; 8% book margin applied &middot; entertainment purposes only.
+</div>
+
+<script>
+const BOARD_DATA = __BOARD_DATA_JSON__;
+</script>
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- odds math (mirrors odds_model.py) ---------------- */
+  function americanToDecimal(o) { return o > 0 ? 1 + o / 100 : 1 + 100 / Math.abs(o); }
+  function decimalToAmerican(d) { return d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1)); }
+  function fmtOdds(o) { return (o > 0 ? "+" : "") + o; }
+  function fmtMoney(n) { return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  /* ---------------- dom helper ---------------- */
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    attrs = attrs || {};
+    for (const k in attrs) {
+      if (k === "class") node.className = attrs[k];
+      else if (k === "text") node.textContent = attrs[k];
+      else if (k.indexOf("on") === 0 && typeof attrs[k] === "function") node.addEventListener(k.slice(2), attrs[k]);
+      else node.setAttribute(k, attrs[k]);
+    }
+    (children || []).forEach((c) => { if (c) node.appendChild(c); });
+    return node;
+  }
+
+  /* ---------------- bet slip state ---------------- */
+  const slip = new Map(); // id -> leg
+
+  function toggleLeg(leg) {
+    if (slip.has(leg.id)) {
+      slip.delete(leg.id);
+    } else {
+      for (const [k, v] of slip) { if (v.group === leg.group) slip.delete(k); }
+      slip.set(leg.id, leg);
+    }
+    renderSlip();
+    syncPillStates();
+  }
+
+  function syncPillStates() {
+    document.querySelectorAll("[data-leg-id]").forEach((node) => {
+      node.classList.toggle("selected", slip.has(node.getAttribute("data-leg-id")));
+    });
+  }
+
+  function makePill(cls, id, group, matchup, marketLabel, selectionLabel, odds, labelText) {
+    const btn = el("button", {
+      class: cls,
+      type: "button",
+      "data-leg-id": id,
+      onclick: () => toggleLeg({ id, group, matchup, marketLabel, selectionLabel, odds }),
+    }, [
+      el("span", { class: "pill-label", text: labelText }),
+      el("span", { class: "pill-odds tabular", text: fmtOdds(odds) }),
+    ]);
+    return btn;
+  }
+
+  function makeOddsPill(id, group, matchup, marketLabel, selectionLabel, odds) {
+    const btn = el("button", {
+      class: "pill wide odds-pill",
+      type: "button",
+      "data-leg-id": id,
+      onclick: () => toggleLeg({ id, group, matchup, marketLabel, selectionLabel, odds }),
+    }, [
+      el("span", { class: "pill-odds tabular", text: fmtOdds(odds) }),
+    ]);
+    return btn;
+  }
+
+  function makeChipPill(id, group, matchup, marketLabel, selectionLabel, odds) {
+    return el("button", {
+      class: "chip-pill",
+      type: "button",
+      "data-leg-id": id,
+      onclick: () => toggleLeg({ id, group, matchup, marketLabel, selectionLabel, odds }),
+    }, [
+      el("span", { class: "chip-name", text: selectionLabel }),
+      el("span", { class: "chip-odds tabular", text: fmtOdds(odds) }),
+    ]);
+  }
+
+  /* ---------------- game cards (This Week) ---------------- */
+  function spreadFor(spreadDict, teamName) {
+    for (const key in spreadDict) { if (key.indexOf(teamName + " ") === 0) return [key, spreadDict[key]]; }
+    return [null, null];
+  }
+
+  function buildGameCard(name, m) {
+    const ml = m.game_lines.Moneyline;
+    const spr = m.game_lines.Spread;
+    const tot = m.game_lines.Total;
+    const totKeys = Object.keys(tot);
+    const overKey = totKeys.find((k) => k.indexOf("Over") === 0);
+    const underKey = totKeys.find((k) => k.indexOf("Under") === 0);
+
+    const [sprAKey, sprAOdds] = spreadFor(spr, m.team_a);
+    const [sprBKey, sprBOdds] = spreadFor(spr, m.team_b);
+
+    function teamRow(team, proj, sprKey, sprOdds, totKey, totSide, mlOdds) {
+      const sprLabel = sprKey ? sprKey.slice(team.length + 1) : "";
+      return el("div", { class: "team-row" }, [
+        el("div", { class: "team-id" }, [
+          el("div", { class: "team-name", text: team }),
+          el("div", { class: "team-proj tabular", text: "proj " + proj.toFixed(1) }),
+        ]),
+        makePill("pill", name + "|SPR|" + team, name + "|SPR", name, "Spread", sprKey, sprOdds, sprLabel),
+        makePill("pill", name + "|TOT|" + totSide, name + "|TOT", name, "Total", totKey, tot[totKey], totSide.toUpperCase() + " " + totKey.split(" ")[1]),
+        makePill("pill", name + "|ML|" + team, name + "|ML", name, "Moneyline", team, mlOdds, "ML"),
+      ]);
+    }
+
+    const card = el("div", { class: "card" }, [
+      el("div", { class: "game-card-head" }, [
+        el("div", { class: "matchup-title", text: name }),
+        el("div", { class: "total-proj tabular", text: (m.proj_a + m.proj_b).toFixed(1) + " projected total" }),
+      ]),
+      el("div", { class: "market-cols-head" }, [
+        el("span", { text: "Team" }),
+        el("span", { text: "Spread" }),
+        el("span", { text: "Total" }),
+        el("span", { text: "Moneyline" }),
+      ]),
+      teamRow(m.team_a, m.proj_a, sprAKey, sprAOdds, overKey, "Over", ml[m.team_a]),
+      teamRow(m.team_b, m.proj_b, sprBKey, sprBOdds, underKey, "Under", ml[m.team_b]),
+    ]);
+
+    const expanderBody = el("div", { class: "expander-body" }, [
+      buildPropsSection(name, m),
+      buildMultiwaySection(name, "TD", "First TD Scorer", m.first_td),
+      buildMultiwaySection(name, "TOP", "Top Individual Output", m.top_output),
+      buildTopScoreLine(name, m.top_score_line),
+    ]);
+
+    const toggle = el("button", { class: "expander-toggle", type: "button" }, [
+      el("span", { text: "Player props, TD scorer & more" }),
+      el("span", { class: "chev", text: "▾" }),
+    ]);
+    toggle.addEventListener("click", () => card.classList.toggle("expanded"));
+
+    card.appendChild(toggle);
+    card.appendChild(expanderBody);
+    return card;
+  }
+
+  function buildPropsSection(matchup, m) {
+    const teams = [m.team_a, m.team_b];
+    const grid = el("div", { class: "prop-grid" }, teams.map((team) => {
+      const rows = m.player_props[team].map((p) => {
+        const spaceIdx = p.label.lastIndexOf(" ");
+        const pname = p.label.slice(0, spaceIdx);
+        const line = p.label.slice(spaceIdx + 1);
+        return el("div", { class: "prop-row" }, [
+          el("div", { class: "prop-info" }, [
+            el("span", { class: "pos-tag", text: p.position }),
+            el("span", { class: "prop-name", text: pname }),
+            p.questionable ? el("span", { class: "q-chip", text: "Q" }) : null,
+            el("span", { class: "prop-line tabular", text: line }),
+          ]),
+          el("div", { class: "prop-pills" }, [
+            makePill("pill", matchup + "|PROP|" + p.label + "|O", matchup + "|PROP|" + p.label, matchup, pname + " Points", "Over " + line, p.Over, "O"),
+            makePill("pill", matchup + "|PROP|" + p.label + "|U", matchup + "|PROP|" + p.label, matchup, pname + " Points", "Under " + line, p.Under, "U"),
+          ]),
+        ]);
+      });
+      return el("div", {}, [
+        el("div", { class: "prop-team-name", text: team }),
+        ...rows,
+      ]);
+    }));
+    return el("div", {}, [
+      el("div", { class: "prop-block-title", text: "Player Points — Over / Under" }),
+      grid,
+    ]);
+  }
+
+  function buildMultiwaySection(matchup, code, title, market) {
+    const chips = Object.keys(market).map((name) =>
+      makeChipPill(matchup + "|" + code + "|" + name, matchup + "|" + code, matchup, title, name, market[name])
+    );
+    return el("div", {}, [
+      el("div", { class: "prop-block-title", text: title }),
+      el("div", { class: "chip-grid" }, chips),
+    ]);
+  }
+
+  function buildTopScoreLine(matchup, line) {
+    const keys = Object.keys(line);
+    const overKey = keys.find((k) => k.indexOf("Over") === 0);
+    const underKey = keys.find((k) => k.indexOf("Under") === 0);
+    return el("div", {}, [
+      el("div", { class: "prop-block-title", text: "Highest Individual Score — " + overKey.split(" ")[1] }),
+      el("div", { class: "chip-grid" }, [
+        makeChipPill(matchup + "|TOPLINE|O", matchup + "|TOPLINE", matchup, "Top Score Line", overKey, line[overKey]),
+        makeChipPill(matchup + "|TOPLINE|U", matchup + "|TOPLINE", matchup, "Top Score Line", underKey, line[underKey]),
+      ]),
+    ]);
+  }
+
+  function renderMatchups() {
+    const root = document.getElementById("view-matchups");
+    root.appendChild(el("div", { class: "section-eyebrow", text: "Week " + BOARD_DATA.week + " · Game Lines" }));
+    Object.keys(BOARD_DATA.matchups).forEach((name) => {
+      root.appendChild(buildGameCard(name, BOARD_DATA.matchups[name]));
+    });
+  }
+
+  /* ---------------- futures (Season) ---------------- */
+  function sortByFavorite(oddsMap) {
+    return Object.keys(oddsMap).sort((a, b) => americanToDecimal(oddsMap[a]) - americanToDecimal(oddsMap[b]));
+  }
+
+  function buildRankedMarketCard(title, sub, marketKey, oddsMap, meta) {
+    const order = sortByFavorite(oddsMap);
+    const rows = order.map((team, i) => el("div", { class: "fut-row" }, [
+      el("span", { class: "fut-rank tabular", text: String(i + 1) }),
+      el("div", { class: "fut-team" }, [
+        el("div", { class: "fut-team-name", text: team }),
+        el("div", { class: "fut-team-meta tabular", text: meta ? "proj " + meta[team].power_score.toFixed(1) + " pts/wk" : "" }),
+      ]),
+      makeOddsPill("FUT|" + marketKey + "|" + team, "FUT|" + marketKey, "Season Futures", title, team, oddsMap[team]),
+    ]));
+    return el("div", { class: "card futures-card" }, [
+      el("h2", { text: title }),
+      el("p", { class: "sub", text: sub }),
+      ...rows,
+    ]);
+  }
+
+  function buildPlayoffCard(playoffMap, meta) {
+    const teams = Object.keys(playoffMap).sort((a, b) => americanToDecimal(playoffMap[a].Yes) - americanToDecimal(playoffMap[b].Yes));
+    const rows = teams.map((team) => el("div", { class: "fut-row" }, [
+      el("div", { class: "fut-team" }, [
+        el("div", { class: "fut-team-name", text: team }),
+        el("div", { class: "fut-team-meta tabular", text: "proj " + meta[team].win_total.toFixed(1) + " wins" }),
+      ]),
+      el("div", { class: "po-yesno" }, [
+        makePill("pill", "FUT|PO|" + team + "|Y", "FUT|PO|" + team, "Season Futures", team + " Makes Playoffs", "Yes", playoffMap[team].Yes, "Y"),
+        makePill("pill", "FUT|PO|" + team + "|N", "FUT|PO|" + team, "Season Futures", team + " Makes Playoffs", "No", playoffMap[team].No, "N"),
+      ]),
+    ]));
+    return el("div", { class: "card futures-card" }, [
+      el("h2", { text: "Makes the Playoffs?" }),
+      el("p", { class: "sub", text: "Top 6 of 10 teams qualify · Yes / No" }),
+      ...rows,
+    ]);
+  }
+
+  function buildWinTotalsCard(winTotals) {
+    const teams = Object.keys(winTotals);
+    const blocks = teams.map((team) => {
+      const labels = Object.keys(winTotals[team]);
+      const lines = labels.map((label) => {
+        const ou = winTotals[team][label];
+        const lineNum = label.slice(team.length + 1);
+        return el("div", { class: "wt-line" }, [
+          el("div", { class: "wt-line-label", text: lineNum + " wins" }),
+          el("div", { class: "pill-pair" }, [
+            makePill("pill", "FUT|WT|" + team + "|" + label + "|O", "FUT|WT|" + team + "|" + label, "Season Futures", team + " Win Total " + lineNum, "Over " + lineNum, ou.Over, "O"),
+            makePill("pill", "FUT|WT|" + team + "|" + label + "|U", "FUT|WT|" + team + "|" + label, "Season Futures", team + " Win Total " + lineNum, "Under " + lineNum, ou.Under, "U"),
+          ]),
+        ]);
+      });
+      return el("div", { class: "wt-team-block" }, [
+        el("div", { class: "fut-team-name", text: team }),
+        el("div", { class: "wt-lines" }, lines),
+      ]);
+    });
+    return el("div", { class: "card futures-card" }, [
+      el("h2", { text: "Season Win Total" }),
+      el("p", { class: "sub", text: "14-game regular season · main line + 2 alts" }),
+      ...blocks,
+    ]);
+  }
+
+  function renderFutures() {
+    const root = document.getElementById("view-futures");
+    root.appendChild(el("div", { class: "section-eyebrow", text: "Season-Long Markets" }));
+    const meta = BOARD_DATA.season.team_meta;
+    const grid = el("div", { class: "futures-grid" }, [
+      buildRankedMarketCard("League Championship", "Odds to win it all · 10 teams", "CHAMP", BOARD_DATA.season.championship, meta),
+      buildRankedMarketCard("Most Points For", "Regular-season scoring leader", "MOSTPF", BOARD_DATA.season.most_pf, meta),
+      buildPlayoffCard(BOARD_DATA.season.playoffs, meta),
+    ]);
+    root.appendChild(grid);
+    root.appendChild(buildWinTotalsCard(BOARD_DATA.season.win_totals));
+  }
+
+  /* ---------------- bet slip rendering ---------------- */
+  function computeTotals() {
+    const legs = Array.from(slip.values());
+    const decimals = legs.map((l) => americanToDecimal(l.odds));
+    const combinedDecimal = decimals.reduce((a, b) => a * b, 1);
+    const stakeInput = document.getElementById("stake-input");
+    const stake = Math.max(0, Number(stakeInput.value) || 0);
+    const payout = stake * combinedDecimal;
+    const toWin = payout - stake;
+    const parlayAmerican = legs.length ? decimalToAmerican(combinedDecimal) : null;
+    return { legs, stake, payout, toWin, parlayAmerican };
+  }
+
+  function renderSlip() {
+    const legsWrap = document.getElementById("slip-legs");
+    const footWrap = document.getElementById("slip-foot");
+    const countBadge = document.getElementById("slip-count");
+    const fab = document.getElementById("slip-fab");
+    const fabCount = document.getElementById("fab-count");
+    const fabOdds = document.getElementById("fab-odds");
+    const parlayRow = document.getElementById("parlay-odds-row");
+    const parlayVal = document.getElementById("parlay-odds-val");
+    const placeBtn = document.getElementById("place-bet-btn");
+
+    legsWrap.innerHTML = "";
+    countBadge.textContent = String(slip.size);
+
+    if (slip.size === 0) {
+      legsWrap.appendChild(el("div", { class: "slip-empty", text: "Your slip is empty. Click any odds to add a pick." }));
+      footWrap.style.display = "none";
+      fab.classList.remove("show");
+      placeBtn.classList.remove("confirmed");
+      placeBtn.textContent = "Place bet";
+      return;
+    }
+
+    slip.forEach((leg) => {
+      legsWrap.appendChild(el("div", { class: "slip-leg" }, [
+        el("div", { class: "slip-leg-main" }, [
+          el("div", { class: "slip-leg-market", text: leg.marketLabel }),
+          el("div", { class: "slip-leg-sel", text: leg.selectionLabel }),
+          el("div", { class: "slip-leg-game", text: leg.matchup }),
+        ]),
+        el("div", { class: "slip-leg-odds tabular", text: fmtOdds(leg.odds) }),
+        el("button", {
+          class: "slip-leg-remove", type: "button", "aria-label": "Remove pick",
+          onclick: () => toggleLeg(leg),
+        }, [document.createTextNode("×")]),
+      ]));
+    });
+
+    footWrap.style.display = "flex";
+    parlayRow.style.display = slip.size > 1 ? "flex" : "none";
+
+    const totals = computeTotals();
+    if (totals.parlayAmerican !== null) parlayVal.textContent = fmtOdds(totals.parlayAmerican);
+    document.getElementById("to-win-val").textContent = fmtMoney(Math.max(0, totals.toWin));
+    document.getElementById("payout-val").textContent = fmtMoney(Math.max(0, totals.payout));
+
+    fab.classList.add("show");
+    fabCount.textContent = slip.size + (slip.size === 1 ? " pick" : " picks");
+    fabOdds.textContent = totals.parlayAmerican !== null ? fmtOdds(totals.parlayAmerican) : fmtOdds(Array.from(slip.values())[0].odds);
+
+    placeBtn.classList.remove("confirmed");
+    placeBtn.textContent = "Place bet";
+  }
+
+  /* ---------------- wiring ---------------- */
+  document.getElementById("stake-input").addEventListener("input", renderSlip);
+
+  document.getElementById("slip-clear").addEventListener("click", () => {
+    slip.clear();
+    renderSlip();
+    syncPillStates();
+  });
+
+  document.getElementById("place-bet-btn").addEventListener("click", function () {
+    if (slip.size === 0) return;
+    this.classList.add("confirmed");
+    this.textContent = "Bet placed ✓";
+  });
+
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const view = btn.getAttribute("data-view");
+      document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+      document.getElementById("view-" + view).classList.add("active");
+    });
+  });
+
+  const slipRail = document.getElementById("slip-rail");
+  document.getElementById("slip-fab").addEventListener("click", () => slipRail.classList.add("mobile-open"));
+  document.getElementById("mobile-slip-close").addEventListener("click", () => slipRail.classList.remove("mobile-open"));
+
+  renderMatchups();
+  renderFutures();
+  renderSlip();
+})();
+</script>

@@ -375,11 +375,13 @@ def season_playoff_markets(
 # WEEK 1 EXAMPLE — replace each week with fresh projections
 # ---------------------------------------------------------------------------
 
-def build_week1_board() -> dict:
+def week1_teams() -> list[tuple[str, TeamLineup, TeamLineup]]:
     """
-    Builds the full Week 1 odds board using the projections established
-    in the session. Replace `projection=` values each week with fresh data
-    from Sleeper or your preferred source.
+    Returns (matchup_name, team_a, team_b) for every Week 1 matchup.
+    Replace `projection=` values each week with fresh data from Sleeper
+    or your preferred source. Shared by build_week1_board() and any other
+    consumer (e.g. the front-end data generator) that needs the raw
+    rosters rather than the priced board.
     """
 
     # ---- MATCHUP 1: CDZ NUTZ vs Mr. Big Chest ----
@@ -405,7 +407,6 @@ def build_week1_board() -> dict:
         Player("Bowers",         "TE",  12.72),
         Player("NYG DEF",        "DEF",  5.76),
     ])
-    m1 = MatchupOdds(cdz, big_chest)
 
     # ---- MATCHUP 2: kyleullrich8 vs leagueisass ----
     kyle = TeamLineup("kyleullrich8", starters=[
@@ -430,7 +431,6 @@ def build_week1_board() -> dict:
         Player("Kraft",          "TE",   9.60, questionable=True),
         Player("TB DEF",         "DEF",  5.64),
     ])
-    m2 = MatchupOdds(kyle, league)
 
     # ---- MATCHUP 3: Buc-cee's vs fjoutlet ----
     buccees = TeamLineup("Buc-cee's", starters=[
@@ -455,7 +455,6 @@ def build_week1_board() -> dict:
         Player("Schultz",        "TE",   6.88),
         Player("HOU DEF",        "DEF",  7.42),
     ])
-    m3 = MatchupOdds(buccees, fjoutlet)
 
     # ---- MATCHUP 4: AZ Rapids vs omaralb ----
     az = TeamLineup("AZ Rapids", starters=[
@@ -479,7 +478,6 @@ def build_week1_board() -> dict:
         Player("Kelce",          "TE",   9.28),
         Player("DET DEF",        "DEF",  7.78),
     ])
-    m4 = MatchupOdds(az, omar)
 
     # ---- MATCHUP 5: The Sopranos vs The Notorious Ones ----
     sopranos = TeamLineup("The Sopranos", starters=[
@@ -504,9 +502,20 @@ def build_week1_board() -> dict:
         Player("H.Henry",        "TE",   7.60),
         Player("SEA DEF",        "DEF",  9.11),
     ])
-    m5 = MatchupOdds(sopranos, notorious)
 
-    # ---- SEASON FUTURES ----
+    return [
+        ("CDZ NUTZ vs Mr. Big Chest",     cdz,      big_chest),
+        ("kyleullrich8 vs leagueisass",   kyle,     league),
+        ("Buc-cee's vs fjoutlet",         buccees,  fjoutlet),
+        ("AZ Rapids vs omaralb",          az,       omar),
+        ("The Sopranos vs The Notorious", sopranos, notorious),
+    ]
+
+
+# ---- SEASON FUTURES INPUTS ----
+
+def week1_season_inputs() -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
+    """Returns (power_scores, win_totals, playoff_probs) for Week 1 futures."""
     power_scores = {
         "kyleullrich8":      142.21,
         "CDZ NUTZ":          132.59,
@@ -546,14 +555,21 @@ def build_week1_board() -> dict:
         "AZ Rapids":          0.16,
     }
 
-    # ---- BUILD FULL BOARD ----
+    return power_scores, win_totals, playoff_probs
+
+
+def build_week1_board() -> dict:
+    """
+    Builds the full Week 1 odds board using the projections established
+    in the session. Replace the `projection=` values in week1_teams() each
+    week with fresh data from Sleeper or your preferred source.
+    """
+    power_scores, win_totals, playoff_probs = week1_season_inputs()
+
     board = {
         "matchups": {
-            "CDZ NUTZ vs Mr. Big Chest":      m1.full_board(),
-            "kyleullrich8 vs leagueisass":    m2.full_board(),
-            "Buc-cee's vs fjoutlet":          m3.full_board(),
-            "AZ Rapids vs omaralb":           m4.full_board(),
-            "The Sopranos vs The Notorious":  m5.full_board(),
+            name: MatchupOdds(team_a, team_b).full_board()
+            for name, team_a, team_b in week1_teams()
         },
         "season": {
             "championship":  season_championship_market(power_scores),
