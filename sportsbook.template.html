@@ -3,8 +3,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   @font-face {
-    font-family: 'Archivo Black';
-    src: url(data:font/woff2;base64,__ARCHIVO_B64__) format('woff2');
+    font-family: 'Bebas Neue';
+    src: url(data:font/woff2;base64,__BEBAS_B64__) format('woff2');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -53,7 +53,7 @@
     --shadow-1: 0 1px 2px rgba(28, 22, 38, 0.06);
     --shadow-2: 0 10px 28px rgba(28, 22, 38, 0.09);
 
-    --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+    --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
     --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
@@ -173,12 +173,11 @@
   }
   .wordmark-mark {
     font-family: var(--font-display);
-    font-size: 21px;
-    letter-spacing: 0.01em;
-    color: var(--text);
+    font-size: 28px;
+    letter-spacing: 0.03em;
+    color: var(--accent);
     white-space: nowrap;
   }
-  .wordmark-mark span { color: var(--accent); }
   .wordmark-tag {
     font-size: 10.5px;
     letter-spacing: 0.14em;
@@ -507,9 +506,9 @@
   .futures-card { padding: 16px; }
   .futures-card h2 {
     font-family: var(--font-display);
-    font-size: 15px;
+    font-size: 19px;
     margin: 0 0 3px;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
   }
   .futures-card .sub {
     font-size: 12px;
@@ -574,7 +573,7 @@
   }
   .slip-head h2 {
     font-family: var(--font-display);
-    font-size: 14px;
+    font-size: 19px;
     margin: 0;
     letter-spacing: 0.02em;
   }
@@ -749,8 +748,9 @@
   }
   .mybets-head h2 {
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: 21px;
     margin: 0;
+    letter-spacing: 0.02em;
   }
   .mybets-head .sub { font-size: 12px; color: var(--text-faint); }
 
@@ -902,8 +902,8 @@
 <div class="topbar">
   <div class="topbar-inner">
     <a class="wordmark" href="#" onclick="return false;">
-      <span class="wordmark-mark">FANTASIZE<span>!</span></span>
-      <span class="wordmark-tag">Fantasy Sportsbook &middot; Week 1</span>
+      <span class="wordmark-mark">FANTASIZE</span>
+      <span class="wordmark-tag">The Mode &middot; Week 1</span>
     </a>
   </div>
   <div class="tabs">

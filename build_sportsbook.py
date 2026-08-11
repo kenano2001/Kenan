@@ -27,7 +27,7 @@ def b64(path: Path) -> str:
 def main() -> None:
     template = (ROOT / "sportsbook.template.html").read_text()
 
-    template = template.replace("__ARCHIVO_B64__", b64(FONTS / "archivoblack.subset.woff2"))
+    template = template.replace("__BEBAS_B64__", b64(FONTS / "bebasneue.subset.woff2"))
     template = template.replace("__INTER_B64__", b64(FONTS / "inter.subset.woff2"))
     template = template.replace("__JBMONO_B64__", b64(FONTS / "jbmono.subset.woff2"))
     template = template.replace("__BOARD_DATA_JSON__", json.dumps(build_board()))
