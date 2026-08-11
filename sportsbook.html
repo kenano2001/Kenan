@@ -213,6 +213,16 @@
   }
   .tab-btn:hover { color: var(--text); }
   .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 100px;
+    margin-left: 6px;
+  }
   .tab-btn:focus-visible, button:focus-visible, input:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
@@ -588,6 +598,37 @@
   }
   .slip-clear:hover { color: var(--danger); }
 
+  .slip-bettor {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .slip-bettor label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    flex: none;
+  }
+  .slip-bettor input {
+    flex: 1;
+    min-width: 0;
+    max-width: 160px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 7px;
+    padding: 6px 9px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text);
+    text-align: left;
+  }
+  .slip-bettor input:focus { outline: none; border-color: var(--accent); }
+  .slip-bettor input.invalid { border-color: var(--underdog); }
+
   .slip-legs {
     overflow-y: auto;
     flex: 1;
@@ -696,6 +737,107 @@
     line-height: 1.5;
   }
 
+  /* ---------------------------------------------------------------- */
+  /* MY BETS                                                           */
+  /* ---------------------------------------------------------------- */
+  .mybets-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mybets-head h2 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    margin: 0;
+  }
+  .mybets-head .sub { font-size: 12px; color: var(--text-faint); }
+
+  .mybets-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .mybets-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .mybets-stat .label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .mybets-stat .value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 3px;
+  }
+
+  .mybets-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .mybets-btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 9px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .mybets-btn:hover { background: var(--surface-3); }
+  .mybets-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .mybets-btn.primary:hover { filter: brightness(1.05); }
+  .mybets-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .mybets-link {
+    background: none; border: none; color: var(--text-faint); font-size: 12px;
+    font-weight: 700; cursor: pointer; padding: 4px;
+  }
+  .mybets-link:hover { color: var(--danger); }
+  .mybets-note { font-size: 11.5px; color: var(--text-faint); line-height: 1.6; }
+
+  .bet-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bet-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .bet-card-when { font-size: 11.5px; color: var(--text-faint); }
+  .bet-card-payout { font-family: var(--font-mono); font-size: 15px; font-weight: 700; }
+  .bet-card-legs { display: flex; flex-direction: column; gap: 4px; }
+  .bet-leg-line {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 12.5px; padding: 3px 0; border-top: 1px dashed var(--border);
+  }
+  .bet-leg-line:first-child { border-top: none; }
+  .bet-leg-line .sel { color: var(--text-dim); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bet-leg-line .o { font-family: var(--font-mono); font-weight: 700; flex: none; }
+  .bet-card-stake { font-size: 12px; color: var(--text-faint); display: flex; justify-content: space-between; }
+
+  .mybets-empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
   /* mobile floating slip button */
   .slip-fab {
     display: none;
@@ -767,6 +909,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-view="matchups" type="button">This Week</button>
     <button class="tab-btn" data-view="futures" type="button">Season Futures</button>
+    <button class="tab-btn" data-view="mybets" type="button">My Bets<span class="tab-badge" id="mybets-badge" style="display:none;">0</span></button>
   </div>
 </div>
 
@@ -774,6 +917,7 @@
   <div class="board">
     <div id="view-matchups" class="view active"></div>
     <div id="view-futures" class="view"></div>
+    <div id="view-mybets" class="view"></div>
   </div>
 
   <div class="slip-rail" id="slip-rail">
@@ -782,6 +926,10 @@
       <div class="slip-head">
         <h2>Bet Slip<span class="slip-count" id="slip-count">0</span></h2>
         <button class="slip-clear" id="slip-clear" type="button">Clear all</button>
+      </div>
+      <div class="slip-bettor">
+        <label for="bettor-name">Betting as</label>
+        <input id="bettor-name" type="text" placeholder="Your name" maxlength="40" autocomplete="off" />
       </div>
       <div class="slip-legs" id="slip-legs">
         <div class="slip-empty">Your slip is empty.<br />Click any odds to add a pick.</div>
@@ -848,6 +996,31 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     }
     (children || []).forEach((c) => { if (c) node.appendChild(c); });
     return node;
+  }
+
+  /* ---------------- local storage (per-device only, see My Bets tab) ---------------- */
+  const NAME_KEY = "fantasize_bettor_name";
+  const LOG_KEY = "fantasize_bet_log_v1";
+  let memoryLog = []; // fallback if localStorage is unavailable in this view
+
+  function loadName() {
+    try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; }
+  }
+  function saveName(name) {
+    try { localStorage.setItem(NAME_KEY, name); } catch (e) { /* ignore */ }
+  }
+  function loadBetLog() {
+    try {
+      const raw = localStorage.getItem(LOG_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return memoryLog; }
+  }
+  function saveBetLog(entries) {
+    memoryLog = entries;
+    try { localStorage.setItem(LOG_KEY, JSON.stringify(entries)); } catch (e) { /* ignore */ }
+  }
+  function makeBetId() {
+    return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
   /* ---------------- bet slip state ---------------- */
@@ -1113,6 +1286,119 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     root.appendChild(buildWinTotalsCard(BOARD_DATA.season.win_totals));
   }
 
+  /* ---------------- my bets (local to this device) ---------------- */
+  function betReportText(entries, name) {
+    const lines = [];
+    lines.push("FANTASIZE — Bet Log for " + (name || "Unnamed"));
+    lines.push("Exported " + new Date().toLocaleString());
+    lines.push("");
+    let totalStaked = 0;
+    let totalPayout = 0;
+    entries.forEach((bet, i) => {
+      totalStaked += bet.stake;
+      totalPayout += bet.payout;
+      lines.push("Bet #" + (i + 1) + " — placed " + new Date(bet.placedAt).toLocaleString());
+      lines.push("  Stake: " + fmtMoney(bet.stake));
+      if (bet.legs.length > 1) lines.push("  Parlay odds: " + fmtOdds(bet.parlayOdds));
+      lines.push("  To win: " + fmtMoney(bet.toWin));
+      lines.push("  Total payout: " + fmtMoney(bet.payout));
+      lines.push("  Legs:");
+      bet.legs.forEach((leg, j) => {
+        lines.push("    " + (j + 1) + ". " + leg.matchup + " — " + leg.marketLabel + " — " + leg.selectionLabel + " (" + fmtOdds(leg.odds) + ")");
+      });
+      lines.push("");
+    });
+    lines.push("——————————————");
+    lines.push("Total staked: " + fmtMoney(totalStaked));
+    lines.push("Total potential payout: " + fmtMoney(totalPayout));
+    return lines.join("\n");
+  }
+
+  function downloadBets() {
+    const btn = document.getElementById("mybets-download");
+    if (!window.claude || !window.claude.downloads) {
+      btn.disabled = true;
+      return;
+    }
+    const entries = loadBetLog();
+    const name = (loadName() || "guest").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const text = betReportText(entries, loadName());
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    window.claude.downloads.save({ filename: "fantasize-bets-" + name + ".txt", data: text })
+      .then(() => { btn.textContent = "Saved ✓"; setTimeout(() => { btn.textContent = originalLabel; btn.disabled = false; }, 1600); })
+      .catch((err) => {
+        btn.disabled = false;
+        if (err && err.code === "declined") return;
+        btn.textContent = "Couldn't save";
+        setTimeout(() => { btn.textContent = originalLabel; }, 1600);
+      });
+  }
+
+  function renderMyBets() {
+    const root = document.getElementById("view-mybets");
+    root.innerHTML = "";
+    const entries = loadBetLog().slice().reverse();
+    const badge = document.getElementById("mybets-badge");
+    badge.style.display = entries.length ? "inline-block" : "none";
+    badge.textContent = String(entries.length);
+
+    const totalStaked = entries.reduce((s, b) => s + b.stake, 0);
+    const totalPayout = entries.reduce((s, b) => s + b.payout, 0);
+
+    root.appendChild(el("div", { class: "section-eyebrow", text: "This Device Only" }));
+    root.appendChild(el("div", { class: "mybets-head" }, [
+      el("h2", { text: "My Bets" }),
+      el("div", { class: "sub", text: entries.length + (entries.length === 1 ? " bet placed" : " bets placed") + " on this device" }),
+    ]));
+
+    root.appendChild(el("div", { class: "mybets-summary" }, [
+      el("div", { class: "mybets-stat" }, [el("div", { class: "label", text: "Bets Placed" }), el("div", { class: "value tabular", text: String(entries.length) })]),
+      el("div", { class: "mybets-stat" }, [el("div", { class: "label", text: "Total Staked" }), el("div", { class: "value tabular", text: fmtMoney(totalStaked) })]),
+      el("div", { class: "mybets-stat" }, [el("div", { class: "label", text: "Potential Payout" }), el("div", { class: "value tabular", text: fmtMoney(totalPayout) })]),
+    ]));
+
+    const downloadBtn = el("button", { class: "mybets-btn primary", type: "button", id: "mybets-download", onclick: downloadBets, text: "Download my bets" });
+    if (!window.claude || !window.claude.downloads) downloadBtn.disabled = true;
+    const clearBtn = el("button", { class: "mybets-link", type: "button", text: "Clear my history" }, []);
+    clearBtn.addEventListener("click", () => {
+      if (entries.length === 0) return;
+      if (window.confirm("Clear your local bet history on this device? This can't be undone.")) {
+        saveBetLog([]);
+        renderMyBets();
+      }
+    });
+
+    root.appendChild(el("div", { class: "mybets-actions" }, [downloadBtn, clearBtn]));
+    root.appendChild(el("div", {
+      class: "mybets-note",
+      text: "Your bet history is saved on this device only — nobody else can see it automatically. Download your bets and send the file to the league admin so they know what you wagered.",
+    }));
+
+    if (entries.length === 0) {
+      root.appendChild(el("div", { class: "mybets-empty", text: "No bets placed yet. Head to This Week or Season Futures, click some odds, and place a bet from the slip." }));
+      return;
+    }
+
+    entries.forEach((bet) => {
+      const legLines = bet.legs.map((leg) => el("div", { class: "bet-leg-line" }, [
+        el("span", { class: "sel", text: leg.selectionLabel + " · " + leg.matchup }),
+        el("span", { class: "o tabular " + oddsClass(leg.odds), text: fmtOdds(leg.odds) }),
+      ]));
+      root.appendChild(el("div", { class: "bet-card" }, [
+        el("div", { class: "bet-card-top" }, [
+          el("div", { class: "bet-card-when", text: new Date(bet.placedAt).toLocaleString() }),
+          el("div", { class: "bet-card-payout tabular", text: fmtMoney(bet.payout) + " payout" }),
+        ]),
+        el("div", { class: "bet-card-legs" }, legLines),
+        el("div", { class: "bet-card-stake" }, [
+          el("span", { text: "Stake " + fmtMoney(bet.stake) + (bet.legs.length > 1 ? " · Parlay " + fmtOdds(bet.parlayOdds) : "") }),
+          el("span", { text: "To win " + fmtMoney(bet.toWin) }),
+        ]),
+      ]));
+    });
+  }
+
   /* ---------------- bet slip rendering ---------------- */
   function computeTotals() {
     const legs = Array.from(slip.values());
@@ -1189,10 +1475,44 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     syncPillStates();
   });
 
+  const bettorInput = document.getElementById("bettor-name");
+  bettorInput.value = loadName();
+  bettorInput.addEventListener("input", () => {
+    bettorInput.classList.remove("invalid");
+    saveName(bettorInput.value.trim());
+  });
+
   document.getElementById("place-bet-btn").addEventListener("click", function () {
     if (slip.size === 0) return;
+    const name = bettorInput.value.trim();
+    if (!name) {
+      bettorInput.classList.add("invalid");
+      bettorInput.focus();
+      return;
+    }
+    saveName(name);
+
+    const totals = computeTotals();
+    const bet = {
+      id: makeBetId(),
+      name: name,
+      placedAt: new Date().toISOString(),
+      stake: totals.stake,
+      parlayOdds: totals.parlayAmerican,
+      toWin: totals.toWin,
+      payout: totals.payout,
+      legs: totals.legs.map((l) => ({ matchup: l.matchup, marketLabel: l.marketLabel, selectionLabel: l.selectionLabel, odds: l.odds })),
+    };
+    saveBetLog([...loadBetLog(), bet]);
+    renderMyBets();
+
     this.classList.add("confirmed");
     this.textContent = "Bet placed ✓";
+    setTimeout(() => {
+      slip.clear();
+      renderSlip();
+      syncPillStates();
+    }, 1200);
   });
 
   document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -1211,6 +1531,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
 
   renderMatchups();
   renderFutures();
+  renderMyBets();
   renderSlip();
 })();
 </script>
