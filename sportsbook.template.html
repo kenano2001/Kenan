@@ -1,5 +1,5 @@
 <meta charset="utf-8" />
-<title>The Mode Sportsbook</title>
+<title>Fantasize</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   @font-face {
@@ -28,30 +28,30 @@
   /* TOKENS                                                            */
   /* ---------------------------------------------------------------- */
   :root {
-    --bg: #f3f5fb;
+    --bg: #faf7fd;
     --surface: #ffffff;
-    --surface-2: #eef1f8;
-    --surface-3: #e3e8f4;
-    --border: #d8deec;
-    --text: #10151f;
-    --text-dim: #5b6478;
-    --text-faint: #8891a5;
+    --surface-2: #f4eefa;
+    --surface-3: #ece1f6;
+    --border: #ddcfec;
+    --text: #1c1626;
+    --text-dim: #6c5f82;
+    --text-faint: #9c8fb0;
 
-    --accent: #2f6fed;
-    --accent-soft: #e7eefd;
+    --accent: #8b3ff0;
+    --accent-soft: #f0e6fd;
     --on-accent: #ffffff;
 
-    --positive: #0ea968;
-    --positive-soft: #e2f7ee;
-    --on-positive: #ffffff;
+    --favorite: #4f8a00;
+    --on-favorite: #ffffff;
+    --underdog: #d5202f;
 
-    --warn: #b5720a;
+    --warn: #a3660a;
     --warn-soft: #fbeed9;
 
-    --danger: #dc2626;
+    --danger: #d5202f;
 
-    --shadow-1: 0 1px 2px rgba(16, 21, 31, 0.06);
-    --shadow-2: 0 10px 28px rgba(16, 21, 31, 0.08);
+    --shadow-1: 0 1px 2px rgba(28, 22, 38, 0.06);
+    --shadow-2: 0 10px 28px rgba(28, 22, 38, 0.09);
 
     --font-display: 'Archivo Black', 'Arial Black', sans-serif;
     --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -62,62 +62,62 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #080c15;
-      --surface: #111a2c;
-      --surface-2: #182339;
-      --surface-3: #202d48;
-      --border: #283252;
+      --bg: #120c1a;
+      --surface: #1c1428;
+      --surface-2: #251b34;
+      --surface-3: #2f2340;
+      --border: #3c2d51;
 
-      --text: #eef2fb;
-      --text-dim: #8d97b3;
-      --text-faint: #5c6684;
+      --text: #f4eefc;
+      --text-dim: #ab9bc4;
+      --text-faint: #6d5f89;
 
-      --accent: #4c85ff;
-      --accent-soft: #16233f;
-      --on-accent: #06122b;
+      --accent: #b487ff;
+      --accent-soft: #2a1f42;
+      --on-accent: #170c2c;
 
-      --positive: #22dd94;
-      --positive-soft: #0f2c22;
-      --on-positive: #04160f;
+      --favorite: #aef22c;
+      --on-favorite: #16240a;
+      --underdog: #ff4d5e;
 
-      --warn: #f5ac2e;
+      --warn: #ffb648;
       --warn-soft: #3a2a0d;
 
-      --danger: #ff6b7a;
+      --danger: #ff4d5e;
 
       --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
-      --shadow-2: 0 16px 36px rgba(0, 0, 0, 0.45);
+      --shadow-2: 0 16px 36px rgba(0, 0, 0, 0.5);
 
       color-scheme: dark;
     }
   }
 
   :root[data-theme="dark"] {
-    --bg: #080c15;
-    --surface: #111a2c;
-    --surface-2: #182339;
-    --surface-3: #202d48;
-    --border: #283252;
+    --bg: #120c1a;
+    --surface: #1c1428;
+    --surface-2: #251b34;
+    --surface-3: #2f2340;
+    --border: #3c2d51;
 
-    --text: #eef2fb;
-    --text-dim: #8d97b3;
-    --text-faint: #5c6684;
+    --text: #f4eefc;
+    --text-dim: #ab9bc4;
+    --text-faint: #6d5f89;
 
-    --accent: #4c85ff;
-    --accent-soft: #16233f;
-    --on-accent: #06122b;
+    --accent: #b487ff;
+    --accent-soft: #2a1f42;
+    --on-accent: #170c2c;
 
-    --positive: #22dd94;
-    --positive-soft: #0f2c22;
-    --on-positive: #04160f;
+    --favorite: #aef22c;
+    --on-favorite: #16240a;
+    --underdog: #ff4d5e;
 
-    --warn: #f5ac2e;
+    --warn: #ffb648;
     --warn-soft: #3a2a0d;
 
-    --danger: #ff6b7a;
+    --danger: #ff4d5e;
 
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-2: 0 16px 36px rgba(0, 0, 0, 0.45);
+    --shadow-2: 0 16px 36px rgba(0, 0, 0, 0.5);
 
     color-scheme: dark;
   }
@@ -189,28 +189,6 @@
     display: none;
   }
   @media (min-width: 620px) { .wordmark-tag { display: inline; } }
-
-  .play-money-badge {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    padding: 6px 10px;
-    border-radius: 100px;
-    white-space: nowrap;
-  }
-  .play-money-badge .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--positive);
-    flex: none;
-  }
 
   .tabs {
     display: flex;
@@ -359,9 +337,9 @@
   .pill:hover { background: var(--surface-3); }
   .pill:active { transform: scale(0.97); }
   .pill.selected {
-    background: var(--positive);
-    border-color: var(--positive);
-    color: var(--on-positive);
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
   }
   .pill .pill-label {
     font-size: 10px;
@@ -374,6 +352,10 @@
     font-size: 13px;
     font-weight: 600;
   }
+  .pill .pill-odds.fav { color: var(--favorite); }
+  .pill .pill-odds.dog { color: var(--underdog); }
+  .pill.selected .pill-odds.fav,
+  .pill.selected .pill-odds.dog { color: var(--on-accent); }
   .pill.wide { flex-direction: row; justify-content: space-between; padding: 9px 12px; }
   .pill.wide .pill-label { font-size: 12.5px; font-weight: 700; opacity: 1; }
   .pill.wide .pill-odds { font-size: 13px; }
@@ -501,9 +483,13 @@
     text-align: left;
   }
   .chip-pill:hover { background: var(--surface-3); }
-  .chip-pill.selected { background: var(--positive); border-color: var(--positive); color: var(--on-positive); }
+  .chip-pill.selected { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .chip-pill .chip-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chip-pill .chip-odds { font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; flex: none; }
+  .chip-pill .chip-odds.fav { color: var(--favorite); }
+  .chip-pill .chip-odds.dog { color: var(--underdog); }
+  .chip-pill.selected .chip-odds.fav,
+  .chip-pill.selected .chip-odds.dog { color: var(--on-accent); }
 
   /* ---------------------------------------------------------------- */
   /* FUTURES                                                           */
@@ -629,6 +615,8 @@
   .slip-leg-sel { font-size: 13px; font-weight: 700; margin-top: 1px; }
   .slip-leg-game { font-size: 11px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .slip-leg-odds { font-family: var(--font-mono); font-size: 13px; font-weight: 700; flex: none; padding-top: 1px; }
+  .slip-leg-odds.fav { color: var(--favorite); }
+  .slip-leg-odds.dog { color: var(--underdog); }
   .slip-leg-remove {
     background: none; border: none; cursor: pointer; color: var(--text-faint);
     font-size: 15px; line-height: 1; padding: 2px 4px; flex: none;
@@ -687,8 +675,8 @@
   .place-bet-btn {
     appearance: none;
     border: none;
-    background: var(--positive);
-    color: var(--on-positive);
+    background: var(--accent);
+    color: var(--on-accent);
     font-family: inherit;
     font-weight: 700;
     font-size: 14px;
@@ -699,7 +687,7 @@
   }
   .place-bet-btn:hover { filter: brightness(1.05); }
   .place-bet-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-  .place-bet-btn.confirmed { background: var(--accent); }
+  .place-bet-btn.confirmed { background: var(--favorite); color: var(--on-favorite); }
 
   .disclaimer {
     font-size: 10.5px;
@@ -772,10 +760,9 @@
 <div class="topbar">
   <div class="topbar-inner">
     <a class="wordmark" href="#" onclick="return false;">
-      <span class="wordmark-mark">THE MODE<span>.</span></span>
-      <span class="wordmark-tag">Sportsbook &middot; Week 1</span>
+      <span class="wordmark-mark">FANTASIZE<span>!</span></span>
+      <span class="wordmark-tag">Fantasy Sportsbook &middot; Week 1</span>
     </a>
-    <div class="play-money-badge"><span class="dot"></span>Play money only</div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" data-view="matchups" type="button">This Week</button>
@@ -820,7 +807,7 @@
           <strong id="payout-val">$0.00</strong>
         </div>
         <button class="place-bet-btn" id="place-bet-btn" type="button">Place bet</button>
-        <div class="disclaimer">For The Mode league bragging rights only.<br />No real money is wagered or collected.</div>
+        <div class="disclaimer">For bragging rights only.<br />No real money is wagered or collected.</div>
       </div>
     </div>
   </div>
@@ -846,6 +833,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   function americanToDecimal(o) { return o > 0 ? 1 + o / 100 : 1 + 100 / Math.abs(o); }
   function decimalToAmerican(d) { return d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1)); }
   function fmtOdds(o) { return (o > 0 ? "+" : "") + o; }
+  function oddsClass(o) { return o < 0 ? "fav" : "dog"; }
   function fmtMoney(n) { return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
   /* ---------------- dom helper ---------------- */
@@ -890,7 +878,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
       onclick: () => toggleLeg({ id, group, matchup, marketLabel, selectionLabel, odds }),
     }, [
       el("span", { class: "pill-label", text: labelText }),
-      el("span", { class: "pill-odds tabular", text: fmtOdds(odds) }),
+      el("span", { class: "pill-odds tabular " + oddsClass(odds), text: fmtOdds(odds) }),
     ]);
     return btn;
   }
@@ -902,7 +890,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
       "data-leg-id": id,
       onclick: () => toggleLeg({ id, group, matchup, marketLabel, selectionLabel, odds }),
     }, [
-      el("span", { class: "pill-odds tabular", text: fmtOdds(odds) }),
+      el("span", { class: "pill-odds tabular " + oddsClass(odds), text: fmtOdds(odds) }),
     ]);
     return btn;
   }
@@ -915,7 +903,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
       onclick: () => toggleLeg({ id, group, matchup, marketLabel, selectionLabel, odds }),
     }, [
       el("span", { class: "chip-name", text: selectionLabel }),
-      el("span", { class: "chip-odds tabular", text: fmtOdds(odds) }),
+      el("span", { class: "chip-odds tabular " + oddsClass(odds), text: fmtOdds(odds) }),
     ]);
   }
 
@@ -1168,7 +1156,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
           el("div", { class: "slip-leg-sel", text: leg.selectionLabel }),
           el("div", { class: "slip-leg-game", text: leg.matchup }),
         ]),
-        el("div", { class: "slip-leg-odds tabular", text: fmtOdds(leg.odds) }),
+        el("div", { class: "slip-leg-odds tabular " + oddsClass(leg.odds), text: fmtOdds(leg.odds) }),
         el("button", {
           class: "slip-leg-remove", type: "button", "aria-label": "Remove pick",
           onclick: () => toggleLeg(leg),
