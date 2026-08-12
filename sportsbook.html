@@ -1023,6 +1023,22 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
+  /* ---------------- shared bet log (Google Sheet via Apps Script) ---------------- */
+  const SHEET_LOG_URL = "https://script.google.com/macros/s/AKfycbzvoP3nflurePHmEgYgvaMC-XjaL-eOqyn2eFtkK0_TZC01B9jBNuQrbiZGTvdw7lLV8Q/exec";
+
+  function logBetToSheet(bet) {
+    const legsText = bet.legs.map((l) => l.selectionLabel + " (" + fmtOdds(l.odds) + ") — " + l.matchup).join(" | ");
+    const params = new URLSearchParams({
+      name: bet.name,
+      stake: bet.stake.toFixed(2),
+      parlayOdds: fmtOdds(bet.parlayOdds),
+      toWin: bet.toWin.toFixed(2),
+      payout: bet.payout.toFixed(2),
+      legs: legsText,
+    });
+    window.open(SHEET_LOG_URL + "?" + params.toString(), "_blank");
+  }
+
   /* ---------------- bet slip state ---------------- */
   const slip = new Map(); // id -> leg
 
@@ -1505,6 +1521,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     };
     saveBetLog([...loadBetLog(), bet]);
     renderMyBets();
+    logBetToSheet(bet);
 
     this.classList.add("confirmed");
     this.textContent = "Bet placed ✓";
