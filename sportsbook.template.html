@@ -1432,8 +1432,11 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
         taken: "That username is already taken. Try logging in instead, or pick a different username.",
         nouser: "No account found with that username. Check the spelling, or sign up.",
         badpass: "Incorrect password for that username.",
+        pending: "Thanks for signing up! Your account is waiting for approval — check back soon.",
+        rejected: "Your account request wasn't approved.",
       };
-      openAuthModal(user, action === "signup" ? "signup" : "login");
+      const mode = (reason === "pending" || reason === "rejected") ? "login" : (action === "signup" ? "signup" : "login");
+      openAuthModal(user, mode);
       showAuthError(messages[reason] || "Something went wrong — please try again.");
     }
   }
