@@ -903,6 +903,8 @@
   .mybets-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .mybets-btn {
     appearance: none;
+    display: inline-block;
+    text-decoration: none;
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);
@@ -954,8 +956,64 @@
     padding-top: 2px;
   }
   .bet-card-log-link:hover { text-decoration: underline; }
+  .bet-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .sync-chip {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 2px 7px;
+    border-radius: 100px;
+    flex: none;
+  }
+  .sync-chip.synced { color: var(--favorite); background: var(--surface-2); border: 1px solid var(--border); }
+  .sync-chip.pending { color: var(--warn); background: var(--warn-soft); }
 
   .mybets-empty {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* ACCOUNT                                                            */
+  /* ---------------------------------------------------------------- */
+  .account-head h2 {
+    font-family: var(--font-display);
+    font-size: 21px;
+    letter-spacing: 0.02em;
+    margin: 0 0 3px;
+  }
+  .account-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 4px 16px;
+  }
+  .account-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .account-row:last-child { border-bottom: none; }
+  .account-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .account-value {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .account-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .account-signed-out {
     padding: 40px 16px;
     text-align: center;
     color: var(--text-faint);
@@ -1035,6 +1093,7 @@
     <button class="tab-btn active" data-view="matchups" type="button">This Week</button>
     <button class="tab-btn" data-view="futures" type="button">Season Futures</button>
     <button class="tab-btn" data-view="mybets" type="button">My Bets<span class="tab-badge" id="mybets-badge" style="display:none;">0</span></button>
+    <button class="tab-btn" data-view="account" type="button">Account</button>
   </div>
 </div>
 
@@ -1043,6 +1102,7 @@
     <div id="view-matchups" class="view active"></div>
     <div id="view-futures" class="view"></div>
     <div id="view-mybets" class="view"></div>
+    <div id="view-account" class="view"></div>
   </div>
 
   <div class="slip-rail" id="slip-rail">
@@ -1076,7 +1136,7 @@
           <span>Total payout</span>
           <strong id="payout-val">$0.00</strong>
         </div>
-        <a class="place-bet-btn" id="place-bet-btn" href="#">Place bet</a>
+        <button class="place-bet-btn" id="place-bet-btn" type="button">Place bet</button>
         <div class="disclaimer">For bragging rights only.<br />No real money is wagered or collected.</div>
       </div>
     </div>
@@ -1091,7 +1151,7 @@
 <div class="auth-overlay" id="auth-overlay">
   <div class="auth-modal" id="auth-modal">
     <h2>Your Account</h2>
-    <p class="sub">Sign in to place bets &mdash; works on any device.</p>
+    <p class="sub">Sign up to play &mdash; works on any device.</p>
     <div class="auth-tabs">
       <button class="auth-tab active" id="auth-tab-login" type="button">Log In</button>
       <button class="auth-tab" id="auth-tab-signup" type="button">Create Account</button>
@@ -1131,6 +1191,17 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
 (function () {
   "use strict";
 
+  // Some browsers restore a page from the back/forward cache instead of
+  // re-running its scripts when you navigate "back" to it — which is
+  // exactly what happens returning from the Apps Script round trip. That
+  // would leave the pre-navigation DOM (e.g. an open login modal) on
+  // screen with a hash the page never actually reads. Force a real
+  // reload so the hash-based routing below always runs against a fresh
+  // load.
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted) window.location.reload();
+  });
+
   /* ---------------- odds math (mirrors odds_model.py) ---------------- */
   function americanToDecimal(o) { return o > 0 ? 1 + o / 100 : 1 + 100 / Math.abs(o); }
   function decimalToAmerican(d) { return d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1)); }
@@ -1153,18 +1224,28 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   }
 
   /* ---------------- local storage (per-device only, see My Bets tab) ---------------- */
-  const AUTH_KEY = "fantasize_auth_user";
+  const AUTH_KEY = "fantasize_auth_user"; // display name — used for betting/greeting
+  const AUTH_USERNAME_KEY = "fantasize_auth_username"; // login handle — shown on Account page
   const LOG_KEY = "fantasize_bet_log_v1";
   let memoryLog = []; // fallback if localStorage is unavailable in this view
 
   function loadAuthUser() {
     try { return localStorage.getItem(AUTH_KEY) || ""; } catch (e) { return ""; }
   }
-  function saveAuthUser(username) {
-    try { localStorage.setItem(AUTH_KEY, username); } catch (e) { /* ignore */ }
+  function loadAuthUsername() {
+    try { return localStorage.getItem(AUTH_USERNAME_KEY) || ""; } catch (e) { return ""; }
+  }
+  function saveAuthUser(displayName, username) {
+    try {
+      localStorage.setItem(AUTH_KEY, displayName);
+      if (username) localStorage.setItem(AUTH_USERNAME_KEY, username);
+    } catch (e) { /* ignore */ }
   }
   function clearAuthUser() {
-    try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* ignore */ }
+    try {
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(AUTH_USERNAME_KEY);
+    } catch (e) { /* ignore */ }
   }
   function loadBetLog() {
     try {
@@ -1208,6 +1289,24 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       legs: legsText,
     });
     return SHEET_LOG_URL + "?" + params.toString();
+  }
+
+  function buildBatchSheetLogUrl(bets) {
+    const compact = bets.map((b) => ({
+      name: b.name,
+      stake: b.stake.toFixed(2),
+      parlayOdds: fmtOdds(b.parlayOdds),
+      toWin: b.toWin.toFixed(2),
+      payout: b.payout.toFixed(2),
+      legs: b.legs.map((l) => l.selectionLabel + " (" + fmtOdds(l.odds) + ") — " + l.matchup).join(" | "),
+    }));
+    const params = new URLSearchParams({ action: "logbets", bets: JSON.stringify(compact) });
+    return SHEET_LOG_URL + "?" + params.toString();
+  }
+
+  function markBetsSynced(ids) {
+    const idSet = new Set(ids);
+    saveBetLog(loadBetLog().map((b) => (idSet.has(b.id) ? { ...b, synced: true } : b)));
   }
 
   /* ---------------- accounts (same Apps Script, routed by ?action=) ---------------- */
@@ -1301,7 +1400,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       ]));
       root.appendChild(el("button", {
         class: "slip-account-link", type: "button",
-        onclick: () => { clearAuthUser(); renderSlipAccount(); renderSlip(); },
+        onclick: () => { clearAuthUser(); renderSlipAccount(); renderSlip(); renderAccount(); },
         text: "Log out",
       }));
     } else {
@@ -1324,9 +1423,10 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     history.replaceState(null, "", window.location.pathname + window.location.search);
 
     if (status === "ok") {
-      saveAuthUser(name || user);
+      saveAuthUser(name || user, user);
       renderSlipAccount();
       renderSlip();
+      renderAccount();
       closeAuthModal();
     } else {
       const messages = {
@@ -1677,10 +1777,20 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     const downloadBtn = el("button", { class: "mybets-btn primary", type: "button", id: "mybets-download", onclick: downloadBets, text: "Download my bets" });
     if (!window.claude || !window.claude.downloads) downloadBtn.disabled = true;
 
-    root.appendChild(el("div", { class: "mybets-actions" }, [downloadBtn]));
+    const pending = entries.filter((b) => !b.synced);
+    const actions = [downloadBtn];
+    if (pending.length > 0) {
+      actions.push(el("a", {
+        class: "mybets-btn",
+        href: buildBatchSheetLogUrl(pending),
+        onclick: () => markBetsSynced(pending.map((b) => b.id)),
+        text: "Sync all pending (" + pending.length + ")",
+      }));
+    }
+    root.appendChild(el("div", { class: "mybets-actions" }, actions));
     root.appendChild(el("div", {
       class: "mybets-note",
-      text: "Placing a bet logs it to the shared spreadsheet automatically. If one doesn't show up there, use the resend link on that bet below.",
+      text: "Bets are saved on this device instantly. Sync them to the shared spreadsheet whenever you want — one at a time or all at once — instead of every bet triggering a redirect.",
     }));
 
     if (entries.length === 0) {
@@ -1703,9 +1813,63 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
           el("span", { text: "Stake " + fmtMoney(bet.stake) + (bet.legs.length > 1 ? " · Parlay " + fmtOdds(bet.parlayOdds) : "") }),
           el("span", { text: "To win " + fmtMoney(bet.toWin) }),
         ]),
-        el("a", { class: "bet-card-log-link", href: buildSheetLogUrl(bet), target: "_blank", rel: "noopener", text: "Resend to spreadsheet ↗" }),
+        el("div", { class: "bet-card-foot" }, [
+          el("a", {
+            class: "bet-card-log-link",
+            href: buildSheetLogUrl(bet),
+            onclick: () => markBetsSynced([bet.id]),
+            text: bet.synced ? "Resend to spreadsheet ↗" : "Sync to spreadsheet ↗",
+          }),
+          el("span", { class: "sync-chip " + (bet.synced ? "synced" : "pending"), text: bet.synced ? "Synced" : "Not synced" }),
+        ]),
       ]));
     });
+  }
+
+  /* ---------------- account ---------------- */
+  function renderAccount() {
+    const root = document.getElementById("view-account");
+    root.innerHTML = "";
+    root.appendChild(el("div", { class: "section-eyebrow", text: "Your Account" }));
+
+    const name = loadAuthUser();
+    const username = loadAuthUsername();
+
+    if (!name) {
+      root.appendChild(el("div", { class: "account-head" }, [el("h2", { text: "Account" })]));
+      root.appendChild(el("div", { class: "account-signed-out" }, [
+        document.createTextNode("You're not signed in on this device."),
+        el("br"),
+        el("button", {
+          class: "mybets-btn primary",
+          type: "button",
+          style: "margin-top:12px;",
+          onclick: () => openAuthModal("", "login"),
+          text: "Log In",
+        }),
+      ]));
+      return;
+    }
+
+    root.appendChild(el("div", { class: "account-head" }, [el("h2", { text: name })]));
+    root.appendChild(el("div", { class: "account-card" }, [
+      el("div", { class: "account-row" }, [
+        el("span", { class: "account-label", text: "Name" }),
+        el("span", { class: "account-value", text: name }),
+      ]),
+      el("div", { class: "account-row" }, [
+        el("span", { class: "account-label", text: "Username" }),
+        el("span", { class: "account-value", text: username || "—" }),
+      ]),
+    ]));
+    root.appendChild(el("div", { class: "account-actions", style: "margin-top:14px;" }, [
+      el("button", {
+        class: "mybets-btn",
+        type: "button",
+        onclick: () => { clearAuthUser(); renderSlipAccount(); renderSlip(); renderAccount(); switchToTab("account"); },
+        text: "Log out",
+      }),
+    ]));
   }
 
   /* ---------------- bet slip rendering ---------------- */
@@ -1773,17 +1937,11 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
 
     // Signed-out users can browse freely but can't place bets — the button
     // itself says so up front instead of only revealing that on click.
+    // Placing a bet is purely local now (see wiring below) — no round
+    // trip, so there's no href to keep synced here anymore.
     const authedUser = loadAuthUser();
     placeBtn.classList.remove("confirmed");
     placeBtn.textContent = authedUser ? "Place bet" : "Log In to Bet";
-
-    // Keep the anchor's href pointed at the current bet BEFORE any click
-    // happens. Mutating href inside the click handler itself doesn't
-    // reliably redirect the browser's own navigation — it has to already
-    // be correct when the click occurs.
-    placeBtn.href = (authedUser && totals.legs.length > 0)
-      ? buildSheetLogUrl({ name: authedUser, stake: totals.stake, parlayOdds: totals.parlayAmerican, toWin: totals.toWin, payout: totals.payout, legs: totals.legs })
-      : "#";
 
     saveSlipEntries(Array.from(slip.entries()));
   }
@@ -1840,15 +1998,18 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     // click, mutating it here wouldn't reliably redirect the navigation.
   });
 
-  document.getElementById("place-bet-btn").addEventListener("click", function (event) {
-    if (slip.size === 0) { event.preventDefault(); return; }
+  document.getElementById("place-bet-btn").addEventListener("click", function () {
+    if (slip.size === 0) return;
     const name = loadAuthUser();
     if (!name) {
-      event.preventDefault();
       openAuthModal("", "login");
       return;
     }
 
+    // Placing a bet is purely local — instant, no round trip. Syncing to
+    // the shared spreadsheet is a separate, explicit step from My Bets
+    // (individually or all at once), so a bet doesn't force a redirect
+    // the moment it's placed.
     const totals = computeTotals();
     const bet = {
       id: makeBetId(),
@@ -1859,19 +2020,17 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       toWin: totals.toWin,
       payout: totals.payout,
       legs: totals.legs.map((l) => ({ matchup: l.matchup, marketLabel: l.marketLabel, selectionLabel: l.selectionLabel, odds: l.odds })),
+      synced: false,
     };
     saveBetLog([...loadBetLog(), bet]);
     renderMyBets();
     switchToTab("mybets");
     document.getElementById("slip-rail").classList.remove("mobile-open");
 
-    this.classList.add("confirmed");
-    this.textContent = "Bet placed ✓";
-    // Clear immediately (not via setTimeout) — the anchor's default
-    // navigation fires right after this handler and unloads the page, so a
-    // delayed clear would rarely run before we've already left.
     slip.clear();
     saveSlipEntries([]);
+    renderSlip();
+    syncPillStates();
   });
 
   function switchToTab(view) {
@@ -1890,6 +2049,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   renderMatchups();
   renderFutures();
   renderMyBets();
+  renderAccount();
 
   // Restore picks made before an interrupted login round trip.
   loadSlipEntries().forEach(([id, leg]) => slip.set(id, leg));
