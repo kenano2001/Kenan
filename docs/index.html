@@ -1185,6 +1185,10 @@
         <label for="auth-password-confirm">Confirm password</label>
         <input id="auth-password-confirm" name="new-password-confirm" type="password" maxlength="60" autocomplete="new-password" />
       </div>
+      <div class="auth-field signup-only">
+        <label for="auth-access-code">Access code</label>
+        <input id="auth-access-code" name="access-code" type="text" maxlength="40" autocomplete="off" placeholder="Ask the commissioner" />
+      </div>
     </form>
     <a class="auth-submit" id="auth-submit" href="#">Log In</a>
     <button class="auth-cancel" id="auth-cancel" type="button">Keep browsing without an account</button>
@@ -1327,8 +1331,8 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
-  function buildAuthUrl(action, username, passwordHash, name) {
-    const params = new URLSearchParams({ action, username, passwordHash, name: name || "" });
+  function buildAuthUrl(action, username, passwordHash, name, accessCode) {
+    const params = new URLSearchParams({ action, username, passwordHash, name: name || "", accessCode: accessCode || "" });
     return SHEET_LOG_URL + "?" + params.toString();
   }
 
@@ -1338,6 +1342,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   const authNameInput = document.getElementById("auth-name");
   const authPasswordInput = document.getElementById("auth-password");
   const authPasswordConfirmInput = document.getElementById("auth-password-confirm");
+  const authAccessCodeInput = document.getElementById("auth-access-code");
   const authSubmit = document.getElementById("auth-submit");
   const authError = document.getElementById("auth-error");
   const authTabLogin = document.getElementById("auth-tab-login");
@@ -1373,6 +1378,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     authNameInput.value = "";
     authPasswordInput.value = "";
     authPasswordConfirmInput.value = "";
+    authAccessCodeInput.value = "";
     authOverlay.classList.add("show");
     syncAuthHref();
   }
@@ -1385,15 +1391,16 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     const username = authUsernameInput.value.trim();
     const name = authNameInput.value.trim();
     const password = authPasswordInput.value;
+    const accessCode = authAccessCodeInput.value.trim();
     const invalid = !username || !password
-      || (authMode === "signup" && (!name || password !== authPasswordConfirmInput.value));
+      || (authMode === "signup" && (!name || !accessCode || password !== authPasswordConfirmInput.value));
     if (invalid) {
       authSubmit.href = "#";
       return;
     }
     try {
       const hash = await sha256Hex(password);
-      authSubmit.href = buildAuthUrl(authMode, username, hash, name);
+      authSubmit.href = buildAuthUrl(authMode, username, hash, name, accessCode);
     } catch (e) {
       authSubmit.href = "#";
     }
@@ -1442,11 +1449,9 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       const messages = {
         taken: "That username is already taken. Try logging in instead, or pick a different username.",
         badlogin: "Invalid username or password.",
-        pending: "Thanks for signing up! Your account is waiting for approval — check back soon.",
-        rejected: "Your account request wasn't approved.",
+        badcode: "That access code isn't right — check with the commissioner.",
       };
-      const mode = (reason === "pending" || reason === "rejected") ? "login" : (action === "signup" ? "signup" : "login");
-      openAuthModal(user, mode);
+      openAuthModal(user, action === "signup" ? "signup" : "login");
       showAuthError(messages[reason] || "Something went wrong — please try again.");
     }
   }
@@ -1969,7 +1974,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
 
   authTabLogin.addEventListener("click", () => setAuthMode("login"));
   authTabSignup.addEventListener("click", () => setAuthMode("signup"));
-  [authUsernameInput, authNameInput, authPasswordInput, authPasswordConfirmInput].forEach((input) => {
+  [authUsernameInput, authNameInput, authPasswordInput, authPasswordConfirmInput, authAccessCodeInput].forEach((input) => {
     input.addEventListener("input", () => {
       input.classList.remove("invalid");
       syncAuthHref();
@@ -2015,6 +2020,13 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       event.preventDefault();
       authPasswordConfirmInput.classList.add("invalid");
       showAuthError("Passwords don't match.");
+      return;
+    }
+    if (authMode === "signup" && !authAccessCodeInput.value.trim()) {
+      event.preventDefault();
+      authAccessCodeInput.classList.add("invalid");
+      authAccessCodeInput.focus();
+      showAuthError("Enter the access code to create an account.");
       return;
     }
     // href is kept synced by syncAuthHref() on every input change — same
