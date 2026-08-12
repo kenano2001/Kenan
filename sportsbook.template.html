@@ -1544,6 +1544,8 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
     };
     saveBetLog([...loadBetLog(), bet]);
     renderMyBets();
+    switchToTab("mybets");
+    document.getElementById("slip-rail").classList.remove("mobile-open");
 
     this.classList.add("confirmed");
     this.textContent = "Bet placed ✓";
@@ -1554,14 +1556,13 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
     }, 1200);
   });
 
+  function switchToTab(view) {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.getAttribute("data-view") === view));
+    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + view));
+  }
+
   document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      const view = btn.getAttribute("data-view");
-      document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
-      document.getElementById("view-" + view).classList.add("active");
-    });
+    btn.addEventListener("click", () => switchToTab(btn.getAttribute("data-view")));
   });
 
   const slipRail = document.getElementById("slip-rail");
