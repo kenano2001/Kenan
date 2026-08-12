@@ -1097,18 +1097,20 @@
       <button class="auth-tab" id="auth-tab-signup" type="button">Create Account</button>
     </div>
     <div class="auth-error" id="auth-error"></div>
-    <div class="auth-field">
-      <label for="auth-username">Username</label>
-      <input id="auth-username" type="text" maxlength="30" autocomplete="off" />
-    </div>
-    <div class="auth-field">
-      <label for="auth-password">Password</label>
-      <input id="auth-password" type="password" maxlength="60" autocomplete="off" />
-    </div>
-    <div class="auth-field confirm">
-      <label for="auth-password-confirm">Confirm password</label>
-      <input id="auth-password-confirm" type="password" maxlength="60" autocomplete="off" />
-    </div>
+    <form id="auth-form" autocomplete="on" onsubmit="return false;">
+      <div class="auth-field">
+        <label for="auth-username">Username</label>
+        <input id="auth-username" name="username" type="text" maxlength="30" autocomplete="username" />
+      </div>
+      <div class="auth-field">
+        <label for="auth-password">Password</label>
+        <input id="auth-password" name="password" type="password" maxlength="60" autocomplete="current-password" />
+      </div>
+      <div class="auth-field confirm">
+        <label for="auth-password-confirm">Confirm password</label>
+        <input id="auth-password-confirm" name="new-password-confirm" type="password" maxlength="60" autocomplete="new-password" />
+      </div>
+    </form>
     <a class="auth-submit" id="auth-submit" href="#">Log In</a>
     <button class="auth-cancel" id="auth-cancel" type="button">Keep browsing without an account</button>
   </div>
@@ -1243,6 +1245,10 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     authTabLogin.classList.toggle("active", mode === "login");
     authTabSignup.classList.toggle("active", mode === "signup");
     authSubmit.textContent = mode === "login" ? "Log In" : "Create Account";
+    // Signals to the browser's password manager whether this is an existing
+    // password to fill (and offer Face ID/Touch ID for) or a new one to
+    // save — matters for whether it offers to autofill vs. generate/save.
+    authPasswordInput.autocomplete = mode === "login" ? "current-password" : "new-password";
     hideAuthError();
     syncAuthHref();
   }
