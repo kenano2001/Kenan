@@ -603,7 +603,7 @@
   }
   .slip-clear:hover { color: var(--danger); }
 
-  .slip-bettor {
+  .slip-account {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -612,27 +612,138 @@
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
   }
-  .slip-bettor label {
-    font-size: 11.5px;
-    font-weight: 700;
+  .slip-account .who {
+    font-size: 12.5px;
     color: var(--text-dim);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .slip-account .who strong { color: var(--text); }
+  .slip-account-btn {
+    appearance: none;
+    border: none;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
     flex: none;
   }
-  .slip-bettor input {
-    flex: 1;
-    min-width: 0;
-    max-width: 160px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    border-radius: 7px;
-    padding: 6px 9px;
-    font-family: inherit;
-    font-size: 13px;
-    color: var(--text);
-    text-align: left;
+  .slip-account-btn:hover { filter: brightness(1.05); }
+  .slip-account-link {
+    background: none; border: none; color: var(--text-faint); font-size: 11.5px;
+    font-weight: 700; cursor: pointer; padding: 4px; flex: none;
   }
-  .slip-bettor input:focus { outline: none; border-color: var(--accent); }
-  .slip-bettor input.invalid { border-color: var(--underdog); }
+  .slip-account-link:hover { color: var(--danger); }
+
+  /* ---------------------------------------------------------------- */
+  /* AUTH MODAL                                                        */
+  /* ---------------------------------------------------------------- */
+  .auth-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(18, 12, 26, 0.55);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .auth-overlay.show { display: flex; }
+  .auth-modal {
+    width: 100%;
+    max-width: 360px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-2);
+    padding: 22px 22px 20px;
+  }
+  .auth-modal h2 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 0.02em;
+    margin: 0 0 4px;
+  }
+  .auth-modal .sub { font-size: 12.5px; color: var(--text-faint); margin: 0 0 16px; }
+  .auth-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .auth-tab {
+    flex: 1;
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .auth-tab.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .auth-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .auth-field label { font-size: 11.5px; font-weight: 700; color: var(--text-dim); }
+  .auth-field input {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .auth-field input:focus { outline: none; border-color: var(--accent); }
+  .auth-field input.invalid { border-color: var(--underdog); }
+  .auth-field.confirm { display: none; }
+  .auth-modal.mode-signup .auth-field.confirm { display: flex; }
+  .auth-error {
+    display: none;
+    font-size: 12px;
+    color: var(--underdog);
+    background: var(--warn-soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .auth-error.show { display: block; }
+  .auth-submit {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    width: 100%;
+    box-sizing: border-box;
+    appearance: none;
+    border: none;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .auth-submit:hover { filter: brightness(1.05); }
+  .auth-cancel {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px;
+    cursor: pointer;
+  }
+  .auth-cancel:hover { color: var(--text); }
+  .auth-note { font-size: 10.5px; color: var(--text-faint); text-align: center; line-height: 1.6; margin-top: 4px; }
 
   .slip-legs {
     overflow-y: auto;
@@ -942,10 +1053,7 @@
         <h2>Bet Slip<span class="slip-count" id="slip-count">0</span></h2>
         <button class="slip-clear" id="slip-clear" type="button">Clear all</button>
       </div>
-      <div class="slip-bettor">
-        <label for="bettor-name">Betting as</label>
-        <input id="bettor-name" type="text" placeholder="Your name" maxlength="40" autocomplete="off" />
-      </div>
+      <div class="slip-account" id="slip-account"></div>
       <div class="slip-legs" id="slip-legs">
         <div class="slip-empty">Your slip is empty.<br />Click any odds to add a pick.</div>
       </div>
@@ -981,6 +1089,33 @@
   <span class="fab-odds tabular" id="fab-odds">&mdash;</span>
 </button>
 
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-modal" id="auth-modal">
+    <h2>Your Account</h2>
+    <p class="sub">Sign in to place bets &mdash; works on any device.</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="auth-tab-login" type="button">Log In</button>
+      <button class="auth-tab" id="auth-tab-signup" type="button">Sign Up</button>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-field">
+      <label for="auth-username">Username</label>
+      <input id="auth-username" type="text" maxlength="30" autocomplete="off" />
+    </div>
+    <div class="auth-field">
+      <label for="auth-password">Password</label>
+      <input id="auth-password" type="password" maxlength="60" autocomplete="off" />
+    </div>
+    <div class="auth-field confirm">
+      <label for="auth-password-confirm">Confirm password</label>
+      <input id="auth-password-confirm" type="password" maxlength="60" autocomplete="off" />
+    </div>
+    <a class="auth-submit" id="auth-submit" href="#">Log In</a>
+    <button class="auth-cancel" id="auth-cancel" type="button">Keep browsing without an account</button>
+    <p class="auth-note">Play-money friend-group app &mdash; please don't reuse a password you use elsewhere.</p>
+  </div>
+</div>
+
 <div class="footer-note">
   Odds generated by <code>odds_model.py</code> from Week 1 starter projections &middot; 8% book margin applied &middot; entertainment purposes only.
 </div>
@@ -1014,15 +1149,18 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   }
 
   /* ---------------- local storage (per-device only, see My Bets tab) ---------------- */
-  const NAME_KEY = "fantasize_bettor_name";
+  const AUTH_KEY = "fantasize_auth_user";
   const LOG_KEY = "fantasize_bet_log_v1";
   let memoryLog = []; // fallback if localStorage is unavailable in this view
 
-  function loadName() {
-    try { return localStorage.getItem(NAME_KEY) || ""; } catch (e) { return ""; }
+  function loadAuthUser() {
+    try { return localStorage.getItem(AUTH_KEY) || ""; } catch (e) { return ""; }
   }
-  function saveName(name) {
-    try { localStorage.setItem(NAME_KEY, name); } catch (e) { /* ignore */ }
+  function saveAuthUser(username) {
+    try { localStorage.setItem(AUTH_KEY, username); } catch (e) { /* ignore */ }
+  }
+  function clearAuthUser() {
+    try { localStorage.removeItem(AUTH_KEY); } catch (e) { /* ignore */ }
   }
   function loadBetLog() {
     try {
@@ -1036,6 +1174,20 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   }
   function makeBetId() {
     return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  // Slip picks are persisted too, since signing in requires a full page
+  // round trip (see accounts section below) — without this, a user who
+  // picks bets before logging in would lose their picks on return.
+  const SLIP_KEY = "fantasize_slip_v1";
+  function loadSlipEntries() {
+    try {
+      const raw = localStorage.getItem(SLIP_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+  function saveSlipEntries(entries) {
+    try { localStorage.setItem(SLIP_KEY, JSON.stringify(entries)); } catch (e) { /* ignore */ }
   }
 
   /* ---------------- shared bet log (Google Sheet via Apps Script) ---------------- */
@@ -1052,6 +1204,125 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       legs: legsText,
     });
     return SHEET_LOG_URL + "?" + params.toString();
+  }
+
+  /* ---------------- accounts (same Apps Script, routed by ?action=) ---------------- */
+  const AUTH_RETURN_URL = "https://claude.ai/code/artifact/7e8a0ad9-3bf8-4daa-ae67-89b8bf822a9c";
+
+  async function sha256Hex(text) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function buildAuthUrl(action, username, passwordHash) {
+    const params = new URLSearchParams({ action, username, passwordHash });
+    return SHEET_LOG_URL + "?" + params.toString();
+  }
+
+  const authOverlay = document.getElementById("auth-overlay");
+  const authModal = document.getElementById("auth-modal");
+  const authUsernameInput = document.getElementById("auth-username");
+  const authPasswordInput = document.getElementById("auth-password");
+  const authPasswordConfirmInput = document.getElementById("auth-password-confirm");
+  const authSubmit = document.getElementById("auth-submit");
+  const authError = document.getElementById("auth-error");
+  const authTabLogin = document.getElementById("auth-tab-login");
+  const authTabSignup = document.getElementById("auth-tab-signup");
+  let authMode = "login";
+
+  function showAuthError(message) {
+    authError.textContent = message;
+    authError.classList.add("show");
+  }
+  function hideAuthError() {
+    authError.classList.remove("show");
+    authError.textContent = "";
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    authModal.classList.toggle("mode-signup", mode === "signup");
+    authTabLogin.classList.toggle("active", mode === "login");
+    authTabSignup.classList.toggle("active", mode === "signup");
+    authSubmit.textContent = mode === "login" ? "Log In" : "Create Account";
+    hideAuthError();
+    syncAuthHref();
+  }
+
+  function openAuthModal(prefillUsername, mode) {
+    setAuthMode(mode || "login");
+    authUsernameInput.value = prefillUsername || "";
+    authPasswordInput.value = "";
+    authPasswordConfirmInput.value = "";
+    authOverlay.classList.add("show");
+    syncAuthHref();
+  }
+  function closeAuthModal() {
+    authOverlay.classList.remove("show");
+    hideAuthError();
+  }
+
+  async function syncAuthHref() {
+    const username = authUsernameInput.value.trim();
+    const password = authPasswordInput.value;
+    if (!username || !password || (authMode === "signup" && password !== authPasswordConfirmInput.value)) {
+      authSubmit.href = "#";
+      return;
+    }
+    try {
+      const hash = await sha256Hex(password);
+      authSubmit.href = buildAuthUrl(authMode, username, hash);
+    } catch (e) {
+      authSubmit.href = "#";
+    }
+  }
+
+  function renderSlipAccount() {
+    const root = document.getElementById("slip-account");
+    root.innerHTML = "";
+    const user = loadAuthUser();
+    if (user) {
+      root.appendChild(el("div", { class: "who" }, [
+        document.createTextNode("Betting as "),
+        el("strong", { text: user }),
+      ]));
+      root.appendChild(el("button", {
+        class: "slip-account-link", type: "button",
+        onclick: () => { clearAuthUser(); renderSlipAccount(); renderSlip(); },
+        text: "Log out",
+      }));
+    } else {
+      root.appendChild(el("div", { class: "who", text: "Not signed in" }));
+      root.appendChild(el("button", {
+        class: "slip-account-btn", type: "button",
+        onclick: () => openAuthModal("", "login"),
+        text: "Log In",
+      }));
+    }
+  }
+
+  function handleAuthReturnHash() {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const status = params.get("auth");
+    const user = params.get("user") || "";
+    const reason = params.get("reason") || "";
+    const action = params.get("action") || "login";
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+
+    if (status === "ok") {
+      saveAuthUser(user);
+      renderSlipAccount();
+      renderSlip();
+      closeAuthModal();
+    } else {
+      const messages = {
+        taken: "That username is already taken. Try logging in instead, or pick a different username.",
+        nouser: "No account found with that username. Check the spelling, or sign up.",
+        badpass: "Incorrect password for that username.",
+      };
+      openAuthModal(user, action === "signup" ? "signup" : "login");
+      showAuthError(messages[reason] || "Something went wrong — please try again.");
+    }
   }
 
   /* ---------------- bet slip state ---------------- */
@@ -1352,8 +1623,8 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       return;
     }
     const entries = loadBetLog();
-    const name = (loadName() || "guest").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    const text = betReportText(entries, loadName());
+    const name = (loadAuthUser() || "guest").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const text = betReportText(entries, loadAuthUser());
     btn.disabled = true;
     const originalLabel = btn.textContent;
     window.claude.downloads.save({ filename: "fantasize-bets-" + name + ".txt", data: text })
@@ -1493,10 +1764,12 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     // happens. Mutating href inside the click handler itself doesn't
     // reliably redirect the browser's own navigation — it has to already
     // be correct when the click occurs.
-    const bettorName = bettorInput.value.trim();
-    placeBtn.href = (bettorName && totals.legs.length > 0)
-      ? buildSheetLogUrl({ name: bettorName, stake: totals.stake, parlayOdds: totals.parlayAmerican, toWin: totals.toWin, payout: totals.payout, legs: totals.legs })
+    const authedUser = loadAuthUser();
+    placeBtn.href = (authedUser && totals.legs.length > 0)
+      ? buildSheetLogUrl({ name: authedUser, stake: totals.stake, parlayOdds: totals.parlayAmerican, toWin: totals.toWin, payout: totals.payout, legs: totals.legs })
       : "#";
+
+    saveSlipEntries(Array.from(slip.entries()));
   }
 
   /* ---------------- wiring ---------------- */
@@ -1508,28 +1781,50 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     syncPillStates();
   });
 
-  const bettorInput = document.getElementById("bettor-name");
-  bettorInput.value = loadName();
-  bettorInput.addEventListener("input", () => {
-    bettorInput.classList.remove("invalid");
-    saveName(bettorInput.value.trim());
-    renderSlip(); // keeps the Place Bet anchor's href synced to the current name
+  authTabLogin.addEventListener("click", () => setAuthMode("login"));
+  authTabSignup.addEventListener("click", () => setAuthMode("signup"));
+  [authUsernameInput, authPasswordInput, authPasswordConfirmInput].forEach((input) => {
+    input.addEventListener("input", () => {
+      input.classList.remove("invalid");
+      syncAuthHref();
+    });
+  });
+  document.getElementById("auth-cancel").addEventListener("click", closeAuthModal);
+
+  authSubmit.addEventListener("click", (event) => {
+    const username = authUsernameInput.value.trim();
+    const password = authPasswordInput.value;
+    if (!username) {
+      event.preventDefault();
+      authUsernameInput.classList.add("invalid");
+      authUsernameInput.focus();
+      return;
+    }
+    if (!password || password.length < 4) {
+      event.preventDefault();
+      authPasswordInput.classList.add("invalid");
+      showAuthError("Password must be at least 4 characters.");
+      return;
+    }
+    if (authMode === "signup" && password !== authPasswordConfirmInput.value) {
+      event.preventDefault();
+      authPasswordConfirmInput.classList.add("invalid");
+      showAuthError("Passwords don't match.");
+      return;
+    }
+    // href is kept synced by syncAuthHref() on every input change — same
+    // reasoning as Place Bet: it has to already be correct before the
+    // click, mutating it here wouldn't reliably redirect the navigation.
   });
 
   document.getElementById("place-bet-btn").addEventListener("click", function (event) {
-    // href is kept continuously synced by renderSlip() (see there for why —
-    // mutating it here, inside the click itself, doesn't reliably redirect
-    // the browser's own navigation). This handler just validates and logs
-    // locally; the anchor's own default action handles the spreadsheet call.
     if (slip.size === 0) { event.preventDefault(); return; }
-    const name = bettorInput.value.trim();
+    const name = loadAuthUser();
     if (!name) {
       event.preventDefault();
-      bettorInput.classList.add("invalid");
-      bettorInput.focus();
+      openAuthModal("", "login");
       return;
     }
-    saveName(name);
 
     const totals = computeTotals();
     const bet = {
@@ -1549,11 +1844,11 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
 
     this.classList.add("confirmed");
     this.textContent = "Bet placed ✓";
-    setTimeout(() => {
-      slip.clear();
-      renderSlip();
-      syncPillStates();
-    }, 1200);
+    // Clear immediately (not via setTimeout) — the anchor's default
+    // navigation fires right after this handler and unloads the page, so a
+    // delayed clear would rarely run before we've already left.
+    slip.clear();
+    saveSlipEntries([]);
   });
 
   function switchToTab(view) {
@@ -1572,11 +1867,20 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   renderMatchups();
   renderFutures();
   renderMyBets();
-  renderSlip();
 
-  // Landing back here after the spreadsheet-log round trip (see the "Back
-  // to Fantasize" link in the Apps Script response) should return to My
-  // Bets, not reset to the default tab.
-  if (window.location.hash === "#mybets") switchToTab("mybets");
+  // Restore picks made before an interrupted login round trip.
+  loadSlipEntries().forEach(([id, leg]) => slip.set(id, leg));
+  renderSlip();
+  syncPillStates();
+  renderSlipAccount();
+
+  // Landing back here after a spreadsheet-log or account round trip (see
+  // the Apps Script response links) should return to the right place
+  // instead of resetting to the default tab.
+  if (window.location.hash === "#mybets") {
+    switchToTab("mybets");
+  } else if (window.location.hash.indexOf("#auth=") === 0) {
+    handleAuthReturnHash();
+  }
 })();
 </script>
