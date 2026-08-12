@@ -1881,6 +1881,11 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     switchToTab("mybets");
   } else if (window.location.hash.indexOf("#auth=") === 0) {
     handleAuthReturnHash();
+  } else if (!loadAuthUser()) {
+    // Prompt immediately on load for signed-out visitors. They can still
+    // dismiss it ("Keep browsing without an account") — this just makes
+    // the prompt proactive instead of only appearing at bet-placement time.
+    openAuthModal("", "login");
   }
 })();
 </script>
