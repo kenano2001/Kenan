@@ -671,15 +671,6 @@
     margin: 0 0 4px;
   }
   .auth-modal .sub { font-size: 12.5px; color: var(--text-faint); margin: 0 0 16px; }
-  .auth-safari-note {
-    font-size: 11.5px;
-    color: var(--warn);
-    background: var(--warn-soft);
-    border-radius: 8px;
-    padding: 8px 10px;
-    margin: -8px 0 16px;
-    line-height: 1.5;
-  }
   .auth-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
   .auth-tab {
     flex: 1;
@@ -752,24 +743,6 @@
     cursor: pointer;
   }
   .auth-cancel:hover { color: var(--text); }
-  .auth-finish { display: none; }
-  .auth-finish-msg {
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.6;
-    margin: 4px 0 18px;
-    text-align: center;
-  }
-  .auth-modal.mode-finish .sub,
-  .auth-modal.mode-finish .auth-safari-note,
-  .auth-modal.mode-finish .auth-tabs,
-  .auth-modal.mode-finish .auth-error,
-  .auth-modal.mode-finish form,
-  .auth-modal.mode-finish > .auth-submit,
-  .auth-modal.mode-finish > .auth-cancel {
-    display: none;
-  }
-  .auth-modal.mode-finish .auth-finish { display: block; }
 
   .slip-legs {
     overflow-y: auto;
@@ -1179,7 +1152,6 @@
   <div class="auth-modal" id="auth-modal">
     <h2>Your Account</h2>
     <p class="sub">Sign up to play &mdash; works on any device.</p>
-    <p class="auth-safari-note" id="auth-safari-note" style="display:none;">Safari may ask permission to remember you on this device &mdash; tap Allow so you stay signed in.</p>
     <div class="auth-tabs">
       <button class="auth-tab active" id="auth-tab-login" type="button">Log In</button>
       <button class="auth-tab" id="auth-tab-signup" type="button">Create Account</button>
@@ -1205,10 +1177,6 @@
     </form>
     <a class="auth-submit" id="auth-submit" href="#">Log In</a>
     <button class="auth-cancel" id="auth-cancel" type="button">Keep browsing without an account</button>
-    <div class="auth-finish" id="auth-finish">
-      <p class="auth-finish-msg" id="auth-finish-msg">You're in!</p>
-      <button class="auth-submit" id="auth-finish-btn" type="button">Continue</button>
-    </div>
   </div>
 </div>
 
@@ -1233,28 +1201,6 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   window.addEventListener("pageshow", function (event) {
     if (event.persisted) window.location.reload();
   });
-
-  // Safari's Intelligent Tracking Prevention blocks persistent storage
-  // (localStorage included) for content embedded in an iframe on another
-  // site — exactly how this page runs — even though reads/writes don't
-  // throw within the same load, they silently don't survive a reload.
-  // The Storage Access API is Safari's official way for embedded content
-  // to ask for an exception; it must be tied to a real user gesture, so
-  // we opportunistically request it on the first tap/click anywhere and
-  // again specifically when logging in.
-  let storageAccessRequested = false;
-  function tryRequestStorageAccess() {
-    if (storageAccessRequested) return;
-    if (typeof document.requestStorageAccess !== "function") return;
-    storageAccessRequested = true;
-    document.requestStorageAccess().catch(() => { storageAccessRequested = false; });
-  }
-  document.addEventListener("pointerdown", tryRequestStorageAccess, { once: true, passive: true });
-
-  if (typeof document.requestStorageAccess === "function") {
-    const safariNote = document.getElementById("auth-safari-note");
-    if (safariNote) safariNote.style.display = "block";
-  }
 
   /* ---------------- odds math (mirrors odds_model.py) ---------------- */
   function americanToDecimal(o) { return o > 0 ? 1 + o / 100 : 1 + 100 / Math.abs(o); }
@@ -1364,7 +1310,6 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   }
 
   /* ---------------- accounts (same Apps Script, routed by ?action=) ---------------- */
-  const AUTH_RETURN_URL = "https://claude.ai/code/artifact/7e8a0ad9-3bf8-4daa-ae67-89b8bf822a9c";
 
   async function sha256Hex(text) {
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -1412,7 +1357,6 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   }
 
   function openAuthModal(prefillUsername, mode) {
-    authModal.classList.remove("mode-finish");
     setAuthMode(mode || "login");
     authUsernameInput.value = prefillUsername || "";
     authNameInput.value = "";
@@ -1423,47 +1367,8 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   }
   function closeAuthModal() {
     authOverlay.classList.remove("show");
-    authModal.classList.remove("mode-finish");
     hideAuthError();
   }
-
-  // On browsers that require the Storage Access API (Safari), the grant
-  // has to be tied to a real user gesture on THIS specific page load — a
-  // tap on the previous page (before the round trip) doesn't carry over.
-  // So instead of saving the login immediately when we land back here, we
-  // show one "Continue" step and request access from inside that click.
-  const authFinish = document.getElementById("auth-finish");
-  const authFinishMsg = document.getElementById("auth-finish-msg");
-  const authFinishBtn = document.getElementById("auth-finish-btn");
-  let pendingAuthName = null;
-  let pendingAuthUsername = null;
-
-  function showFinishStep(name, username) {
-    pendingAuthName = name;
-    pendingAuthUsername = username;
-    hideAuthError();
-    authModal.classList.add("mode-finish");
-    authFinishMsg.textContent = "Welcome, " + name + "! Tap below to finish signing in.";
-    authOverlay.classList.add("show");
-  }
-
-  function completeSignIn() {
-    saveAuthUser(pendingAuthName, pendingAuthUsername);
-    pendingAuthName = null;
-    pendingAuthUsername = null;
-    renderSlipAccount();
-    renderSlip();
-    renderAccount();
-    closeAuthModal();
-  }
-
-  authFinishBtn.addEventListener("click", function () {
-    if (typeof document.requestStorageAccess === "function") {
-      document.requestStorageAccess().then(completeSignIn).catch(completeSignIn);
-    } else {
-      completeSignIn();
-    }
-  });
 
   async function syncAuthHref() {
     const username = authUsernameInput.value.trim();
@@ -1517,16 +1422,11 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
     history.replaceState(null, "", window.location.pathname + window.location.search);
 
     if (status === "ok") {
-      if (typeof document.requestStorageAccess === "function") {
-        // Needs one more tap on this fresh page load to actually take hold.
-        showFinishStep(name || user, user);
-      } else {
-        saveAuthUser(name || user, user);
-        renderSlipAccount();
-        renderSlip();
-        renderAccount();
-        closeAuthModal();
-      }
+      saveAuthUser(name || user, user);
+      renderSlipAccount();
+      renderSlip();
+      renderAccount();
+      closeAuthModal();
     } else {
       const messages = {
         taken: "That username is already taken. Try logging in instead, or pick a different username.",
@@ -2065,7 +1965,6 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   document.getElementById("auth-cancel").addEventListener("click", closeAuthModal);
 
   authSubmit.addEventListener("click", (event) => {
-    tryRequestStorageAccess();
     const username = authUsernameInput.value.trim();
     const password = authPasswordInput.value;
     if (!username) {
