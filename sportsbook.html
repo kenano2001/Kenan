@@ -195,8 +195,14 @@
     max-width: 1280px;
     margin: 0 auto;
     padding: 0 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab-btn {
+    flex: none;
+    white-space: nowrap;
     appearance: none;
     background: none;
     border: none;
@@ -829,6 +835,15 @@
   .bet-leg-line .sel { color: var(--text-dim); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bet-leg-line .o { font-family: var(--font-mono); font-weight: 700; flex: none; }
   .bet-card-stake { font-size: 12px; color: var(--text-faint); display: flex; justify-content: space-between; }
+  .bet-card-log-link {
+    align-self: flex-start;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+    padding-top: 2px;
+  }
+  .bet-card-log-link:hover { text-decoration: underline; }
 
   .mybets-empty {
     padding: 40px 16px;
@@ -1026,7 +1041,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   /* ---------------- shared bet log (Google Sheet via Apps Script) ---------------- */
   const SHEET_LOG_URL = "https://script.google.com/macros/s/AKfycbzvoP3nflurePHmEgYgvaMC-XjaL-eOqyn2eFtkK0_TZC01B9jBNuQrbiZGTvdw7lLV8Q/exec";
 
-  function logBetToSheet(bet) {
+  function buildSheetLogUrl(bet) {
     const legsText = bet.legs.map((l) => l.selectionLabel + " (" + fmtOdds(l.odds) + ") — " + l.matchup).join(" | ");
     const params = new URLSearchParams({
       name: bet.name,
@@ -1036,7 +1051,14 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       payout: bet.payout.toFixed(2),
       legs: legsText,
     });
-    window.open(SHEET_LOG_URL + "?" + params.toString(), "_blank");
+    return SHEET_LOG_URL + "?" + params.toString();
+  }
+
+  // Best-effort automatic attempt. The artifact sandbox may silently block
+  // window.open, so this is never the only path — every bet also gets a
+  // visible manual link in the My Bets tab as a guaranteed fallback.
+  function logBetToSheet(bet) {
+    try { window.open(buildSheetLogUrl(bet), "_blank"); } catch (e) { /* ignore, manual link still works */ }
   }
 
   /* ---------------- bet slip state ---------------- */
@@ -1388,7 +1410,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     root.appendChild(el("div", { class: "mybets-actions" }, [downloadBtn, clearBtn]));
     root.appendChild(el("div", {
       class: "mybets-note",
-      text: "Your bet history is saved on this device only — nobody else can see it automatically. Download your bets and send the file to the league admin so they know what you wagered.",
+      text: "Placing a bet also tries to log it to the shared spreadsheet automatically. If it doesn't show up there, tap \"Log this bet to the spreadsheet\" on the bet below to send it yourself.",
     }));
 
     if (entries.length === 0) {
@@ -1411,6 +1433,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
           el("span", { text: "Stake " + fmtMoney(bet.stake) + (bet.legs.length > 1 ? " · Parlay " + fmtOdds(bet.parlayOdds) : "") }),
           el("span", { text: "To win " + fmtMoney(bet.toWin) }),
         ]),
+        el("a", { class: "bet-card-log-link", href: buildSheetLogUrl(bet), target: "_blank", rel: "noopener", text: "Log this bet to the spreadsheet ↗" }),
       ]));
     });
   }
