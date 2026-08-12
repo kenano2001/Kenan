@@ -752,6 +752,24 @@
     cursor: pointer;
   }
   .auth-cancel:hover { color: var(--text); }
+  .auth-finish { display: none; }
+  .auth-finish-msg {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    margin: 4px 0 18px;
+    text-align: center;
+  }
+  .auth-modal.mode-finish .sub,
+  .auth-modal.mode-finish .auth-safari-note,
+  .auth-modal.mode-finish .auth-tabs,
+  .auth-modal.mode-finish .auth-error,
+  .auth-modal.mode-finish form,
+  .auth-modal.mode-finish > .auth-submit,
+  .auth-modal.mode-finish > .auth-cancel {
+    display: none;
+  }
+  .auth-modal.mode-finish .auth-finish { display: block; }
 
   .slip-legs {
     overflow-y: auto;
@@ -1187,6 +1205,10 @@
     </form>
     <a class="auth-submit" id="auth-submit" href="#">Log In</a>
     <button class="auth-cancel" id="auth-cancel" type="button">Keep browsing without an account</button>
+    <div class="auth-finish" id="auth-finish">
+      <p class="auth-finish-msg" id="auth-finish-msg">You're in!</p>
+      <button class="auth-submit" id="auth-finish-btn" type="button">Continue</button>
+    </div>
   </div>
 </div>
 
@@ -1390,6 +1412,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   }
 
   function openAuthModal(prefillUsername, mode) {
+    authModal.classList.remove("mode-finish");
     setAuthMode(mode || "login");
     authUsernameInput.value = prefillUsername || "";
     authNameInput.value = "";
@@ -1400,8 +1423,47 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   }
   function closeAuthModal() {
     authOverlay.classList.remove("show");
+    authModal.classList.remove("mode-finish");
     hideAuthError();
   }
+
+  // On browsers that require the Storage Access API (Safari), the grant
+  // has to be tied to a real user gesture on THIS specific page load — a
+  // tap on the previous page (before the round trip) doesn't carry over.
+  // So instead of saving the login immediately when we land back here, we
+  // show one "Continue" step and request access from inside that click.
+  const authFinish = document.getElementById("auth-finish");
+  const authFinishMsg = document.getElementById("auth-finish-msg");
+  const authFinishBtn = document.getElementById("auth-finish-btn");
+  let pendingAuthName = null;
+  let pendingAuthUsername = null;
+
+  function showFinishStep(name, username) {
+    pendingAuthName = name;
+    pendingAuthUsername = username;
+    hideAuthError();
+    authModal.classList.add("mode-finish");
+    authFinishMsg.textContent = "Welcome, " + name + "! Tap below to finish signing in.";
+    authOverlay.classList.add("show");
+  }
+
+  function completeSignIn() {
+    saveAuthUser(pendingAuthName, pendingAuthUsername);
+    pendingAuthName = null;
+    pendingAuthUsername = null;
+    renderSlipAccount();
+    renderSlip();
+    renderAccount();
+    closeAuthModal();
+  }
+
+  authFinishBtn.addEventListener("click", function () {
+    if (typeof document.requestStorageAccess === "function") {
+      document.requestStorageAccess().then(completeSignIn).catch(completeSignIn);
+    } else {
+      completeSignIn();
+    }
+  });
 
   async function syncAuthHref() {
     const username = authUsernameInput.value.trim();
@@ -1455,11 +1517,16 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     history.replaceState(null, "", window.location.pathname + window.location.search);
 
     if (status === "ok") {
-      saveAuthUser(name || user, user);
-      renderSlipAccount();
-      renderSlip();
-      renderAccount();
-      closeAuthModal();
+      if (typeof document.requestStorageAccess === "function") {
+        // Needs one more tap on this fresh page load to actually take hold.
+        showFinishStep(name || user, user);
+      } else {
+        saveAuthUser(name || user, user);
+        renderSlipAccount();
+        renderSlip();
+        renderAccount();
+        closeAuthModal();
+      }
     } else {
       const messages = {
         taken: "That username is already taken. Try logging in instead, or pick a different username.",
