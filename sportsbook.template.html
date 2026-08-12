@@ -719,6 +719,7 @@
   }
 
   .place-bet-btn {
+    display: block;
     appearance: none;
     border: none;
     background: var(--accent);
@@ -730,6 +731,10 @@
     border-radius: 10px;
     cursor: pointer;
     margin-top: 2px;
+    text-align: center;
+    text-decoration: none;
+    width: 100%;
+    box-sizing: border-box;
   }
   .place-bet-btn:hover { filter: brightness(1.05); }
   .place-bet-btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -802,11 +807,6 @@
   .mybets-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .mybets-btn.primary:hover { filter: brightness(1.05); }
   .mybets-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .mybets-link {
-    background: none; border: none; color: var(--text-faint); font-size: 12px;
-    font-weight: 700; cursor: pointer; padding: 4px;
-  }
-  .mybets-link:hover { color: var(--danger); }
   .mybets-note { font-size: 11.5px; color: var(--text-faint); line-height: 1.6; }
 
   .bet-card {
@@ -969,7 +969,7 @@
           <span>Total payout</span>
           <strong id="payout-val">$0.00</strong>
         </div>
-        <button class="place-bet-btn" id="place-bet-btn" type="button">Place bet</button>
+        <a class="place-bet-btn" id="place-bet-btn" href="#" target="_blank" rel="noopener">Place bet</a>
         <div class="disclaimer">For bragging rights only.<br />No real money is wagered or collected.</div>
       </div>
     </div>
@@ -1052,13 +1052,6 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
       legs: legsText,
     });
     return SHEET_LOG_URL + "?" + params.toString();
-  }
-
-  // Best-effort automatic attempt. The artifact sandbox may silently block
-  // window.open, so this is never the only path — every bet also gets a
-  // visible manual link in the My Bets tab as a guaranteed fallback.
-  function logBetToSheet(bet) {
-    try { window.open(buildSheetLogUrl(bet), "_blank"); } catch (e) { /* ignore, manual link still works */ }
   }
 
   /* ---------------- bet slip state ---------------- */
@@ -1398,19 +1391,11 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
 
     const downloadBtn = el("button", { class: "mybets-btn primary", type: "button", id: "mybets-download", onclick: downloadBets, text: "Download my bets" });
     if (!window.claude || !window.claude.downloads) downloadBtn.disabled = true;
-    const clearBtn = el("button", { class: "mybets-link", type: "button", text: "Clear my history" }, []);
-    clearBtn.addEventListener("click", () => {
-      if (entries.length === 0) return;
-      if (window.confirm("Clear your local bet history on this device? This can't be undone.")) {
-        saveBetLog([]);
-        renderMyBets();
-      }
-    });
 
-    root.appendChild(el("div", { class: "mybets-actions" }, [downloadBtn, clearBtn]));
+    root.appendChild(el("div", { class: "mybets-actions" }, [downloadBtn]));
     root.appendChild(el("div", {
       class: "mybets-note",
-      text: "Placing a bet also tries to log it to the shared spreadsheet automatically. If it doesn't show up there, tap \"Log this bet to the spreadsheet\" on the bet below to send it yourself.",
+      text: "Placing a bet logs it to the shared spreadsheet automatically. If one doesn't show up there, use the resend link on that bet below.",
     }));
 
     if (entries.length === 0) {
@@ -1433,7 +1418,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
           el("span", { text: "Stake " + fmtMoney(bet.stake) + (bet.legs.length > 1 ? " · Parlay " + fmtOdds(bet.parlayOdds) : "") }),
           el("span", { text: "To win " + fmtMoney(bet.toWin) }),
         ]),
-        el("a", { class: "bet-card-log-link", href: buildSheetLogUrl(bet), target: "_blank", rel: "noopener", text: "Log this bet to the spreadsheet ↗" }),
+        el("a", { class: "bet-card-log-link", href: buildSheetLogUrl(bet), target: "_blank", rel: "noopener", text: "Resend to spreadsheet ↗" }),
       ]));
     });
   }
@@ -1503,6 +1488,15 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
 
     placeBtn.classList.remove("confirmed");
     placeBtn.textContent = "Place bet";
+
+    // Keep the anchor's href pointed at the current bet BEFORE any click
+    // happens. Mutating href inside the click handler itself doesn't
+    // reliably redirect the browser's own navigation — it has to already
+    // be correct when the click occurs.
+    const bettorName = bettorInput.value.trim();
+    placeBtn.href = (bettorName && totals.legs.length > 0)
+      ? buildSheetLogUrl({ name: bettorName, stake: totals.stake, parlayOdds: totals.parlayAmerican, toWin: totals.toWin, payout: totals.payout, legs: totals.legs })
+      : "#";
   }
 
   /* ---------------- wiring ---------------- */
@@ -1519,12 +1513,18 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   bettorInput.addEventListener("input", () => {
     bettorInput.classList.remove("invalid");
     saveName(bettorInput.value.trim());
+    renderSlip(); // keeps the Place Bet anchor's href synced to the current name
   });
 
-  document.getElementById("place-bet-btn").addEventListener("click", function () {
-    if (slip.size === 0) return;
+  document.getElementById("place-bet-btn").addEventListener("click", function (event) {
+    // href is kept continuously synced by renderSlip() (see there for why —
+    // mutating it here, inside the click itself, doesn't reliably redirect
+    // the browser's own navigation). This handler just validates and logs
+    // locally; the anchor's own default action handles the spreadsheet call.
+    if (slip.size === 0) { event.preventDefault(); return; }
     const name = bettorInput.value.trim();
     if (!name) {
+      event.preventDefault();
       bettorInput.classList.add("invalid");
       bettorInput.focus();
       return;
@@ -1544,7 +1544,6 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
     };
     saveBetLog([...loadBetLog(), bet]);
     renderMyBets();
-    logBetToSheet(bet);
 
     this.classList.add("confirmed");
     this.textContent = "Bet placed ✓";
