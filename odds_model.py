@@ -410,8 +410,8 @@ def week1_teams() -> list[tuple[str, TeamLineup, TeamLineup]]:
 
     # ---- MATCHUP 2: kyleullrich8 vs leagueisass ----
     kyle = TeamLineup("kyleullrich8", starters=[
-        Player("Mahomes",        "QB",  17.83, questionable=True),
         Player("Prescott",       "QB",  20.88),
+        Player("Goff",           "QB",  20.07),
         Player("B.Robinson",     "RB",  19.55),
         Player("Gibbs",          "RB",  20.25, questionable=True),
         Player("McCaffrey",      "RB",  17.20, questionable=True),
@@ -421,7 +421,7 @@ def week1_teams() -> list[tuple[str, TeamLineup, TeamLineup]]:
         Player("BAL DEF",        "DEF",  7.90),
     ])
     league = TeamLineup("leagueisass", starters=[
-        Player("Goff",           "QB",  20.07),
+        Player("Mahomes",        "QB",  17.83, questionable=True),
         Player("D.Jones",        "QB",  17.32),
         Player("Love",           "RB",  13.69),
         Player("Etienne",        "RB",  10.74),
