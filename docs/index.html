@@ -1168,7 +1168,7 @@
       <button class="auth-tab" id="auth-tab-signup" type="button">Create Account</button>
     </div>
     <div class="auth-error" id="auth-error"></div>
-    <form id="auth-form" autocomplete="on" onsubmit="return false;">
+    <form id="auth-form" autocomplete="on">
       <div class="auth-field signup-only">
         <label for="auth-name">Name</label>
         <input id="auth-name" name="name" type="text" maxlength="40" autocomplete="name" placeholder="What should we call you?" />
@@ -1976,6 +1976,13 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     });
   });
   document.getElementById("auth-cancel").addEventListener("click", closeAuthModal);
+
+  // Lets the keyboard's Enter/Return key submit the form (same action as
+  // tapping the Log In / Create Account button) instead of only a tap.
+  document.getElementById("auth-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    authSubmit.click();
+  });
 
   authSubmit.addEventListener("click", (event) => {
     const username = authUsernameInput.value.trim();
