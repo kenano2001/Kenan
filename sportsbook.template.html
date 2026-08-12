@@ -969,7 +969,7 @@
           <span>Total payout</span>
           <strong id="payout-val">$0.00</strong>
         </div>
-        <a class="place-bet-btn" id="place-bet-btn" href="#" target="_blank" rel="noopener">Place bet</a>
+        <a class="place-bet-btn" id="place-bet-btn" href="#">Place bet</a>
         <div class="disclaimer">For bragging rights only.<br />No real money is wagered or collected.</div>
       </div>
     </div>
@@ -1573,5 +1573,10 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   renderFutures();
   renderMyBets();
   renderSlip();
+
+  // Landing back here after the spreadsheet-log round trip (see the "Back
+  // to Fantasize" link in the Apps Script response) should return to My
+  // Bets, not reset to the default tab.
+  if (window.location.hash === "#mybets") switchToTab("mybets");
 })();
 </script>
