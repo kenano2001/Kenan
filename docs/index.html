@@ -1287,7 +1287,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   }
 
   /* ---------------- shared bet log (Google Sheet via Apps Script) ---------------- */
-  const SHEET_LOG_URL = "https://script.google.com/macros/s/AKfycbzvoP3nflurePHmEgYgvaMC-XjaL-eOqyn2eFtkK0_TZC01B9jBNuQrbiZGTvdw7lLV8Q/exec";
+  const SHEET_LOG_URL = "https://script.google.com/macros/s/AKfycbx_nCEKgDRY7wYPMMYkQRFtbPfg5UGaNNyVJU3bKDW4u0V8p7naeO8tHQTXxEZC0OL8Wg/exec";
 
   function buildSheetLogUrl(bet) {
     const legsText = bet.legs.map((l) => l.selectionLabel + " (" + fmtOdds(l.odds) + ") — " + l.matchup).join(" | ");
