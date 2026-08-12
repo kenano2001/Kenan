@@ -743,7 +743,6 @@
     cursor: pointer;
   }
   .auth-cancel:hover { color: var(--text); }
-  .auth-note { font-size: 10.5px; color: var(--text-faint); text-align: center; line-height: 1.6; margin-top: 4px; }
 
   .slip-legs {
     overflow-y: auto;
@@ -1095,7 +1094,7 @@
     <p class="sub">Sign in to place bets &mdash; works on any device.</p>
     <div class="auth-tabs">
       <button class="auth-tab active" id="auth-tab-login" type="button">Log In</button>
-      <button class="auth-tab" id="auth-tab-signup" type="button">Sign Up</button>
+      <button class="auth-tab" id="auth-tab-signup" type="button">Create Account</button>
     </div>
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-field">
@@ -1112,7 +1111,6 @@
     </div>
     <a class="auth-submit" id="auth-submit" href="#">Log In</a>
     <button class="auth-cancel" id="auth-cancel" type="button">Keep browsing without an account</button>
-    <p class="auth-note">Play-money friend-group app &mdash; please don't reuse a password you use elsewhere.</p>
   </div>
 </div>
 
@@ -1757,14 +1755,16 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     fabCount.textContent = slip.size + (slip.size === 1 ? " pick" : " picks");
     fabOdds.textContent = totals.parlayAmerican !== null ? fmtOdds(totals.parlayAmerican) : fmtOdds(Array.from(slip.values())[0].odds);
 
+    // Signed-out users can browse freely but can't place bets — the button
+    // itself says so up front instead of only revealing that on click.
+    const authedUser = loadAuthUser();
     placeBtn.classList.remove("confirmed");
-    placeBtn.textContent = "Place bet";
+    placeBtn.textContent = authedUser ? "Place bet" : "Log In to Bet";
 
     // Keep the anchor's href pointed at the current bet BEFORE any click
     // happens. Mutating href inside the click handler itself doesn't
     // reliably redirect the browser's own navigation — it has to already
     // be correct when the click occurs.
-    const authedUser = loadAuthUser();
     placeBtn.href = (authedUser && totals.legs.length > 0)
       ? buildSheetLogUrl({ name: authedUser, stake: totals.stake, parlayOdds: totals.parlayAmerican, toWin: totals.toWin, payout: totals.payout, legs: totals.legs })
       : "#";
