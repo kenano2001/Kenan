@@ -1157,7 +1157,7 @@
       <button class="auth-tab" id="auth-tab-signup" type="button">Create Account</button>
     </div>
     <div class="auth-error" id="auth-error"></div>
-    <form id="auth-form" autocomplete="on">
+    <form id="auth-form" autocomplete="on" onsubmit="return false;">
       <div class="auth-field signup-only">
         <label for="auth-name">Name</label>
         <input id="auth-name" name="name" type="text" maxlength="40" autocomplete="name" placeholder="What should we call you?" />
@@ -1968,7 +1968,12 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
 
   // Lets the keyboard's Enter/Return key submit the form (same action as
   // tapping the Log In / Create Account button) instead of only a tap.
-  document.getElementById("auth-form").addEventListener("submit", (event) => {
+  // Native implicit form submission only fires on Enter when there's a
+  // submit button or exactly one field in the form — this form has neither
+  // (multiple fields, submit button lives outside the form), so it's
+  // handled directly on keydown instead.
+  document.getElementById("auth-form").addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
     event.preventDefault();
     authSubmit.click();
   });
