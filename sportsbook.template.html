@@ -699,8 +699,8 @@
   }
   .auth-field input:focus { outline: none; border-color: var(--accent); }
   .auth-field input.invalid { border-color: var(--underdog); }
-  .auth-field.confirm { display: none; }
-  .auth-modal.mode-signup .auth-field.confirm { display: flex; }
+  .auth-field.signup-only { display: none; }
+  .auth-modal.mode-signup .auth-field.signup-only { display: flex; }
   .auth-error {
     display: none;
     font-size: 12px;
@@ -1102,11 +1102,15 @@
         <label for="auth-username">Username</label>
         <input id="auth-username" name="username" type="text" maxlength="30" autocomplete="username" />
       </div>
+      <div class="auth-field signup-only">
+        <label for="auth-name">Name</label>
+        <input id="auth-name" name="name" type="text" maxlength="40" autocomplete="name" placeholder="What should we call you?" />
+      </div>
       <div class="auth-field">
         <label for="auth-password">Password</label>
         <input id="auth-password" name="password" type="password" maxlength="60" autocomplete="current-password" />
       </div>
-      <div class="auth-field confirm">
+      <div class="auth-field signup-only">
         <label for="auth-password-confirm">Confirm password</label>
         <input id="auth-password-confirm" name="new-password-confirm" type="password" maxlength="60" autocomplete="new-password" />
       </div>
@@ -1214,14 +1218,15 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
-  function buildAuthUrl(action, username, passwordHash) {
-    const params = new URLSearchParams({ action, username, passwordHash });
+  function buildAuthUrl(action, username, passwordHash, name) {
+    const params = new URLSearchParams({ action, username, passwordHash, name: name || "" });
     return SHEET_LOG_URL + "?" + params.toString();
   }
 
   const authOverlay = document.getElementById("auth-overlay");
   const authModal = document.getElementById("auth-modal");
   const authUsernameInput = document.getElementById("auth-username");
+  const authNameInput = document.getElementById("auth-name");
   const authPasswordInput = document.getElementById("auth-password");
   const authPasswordConfirmInput = document.getElementById("auth-password-confirm");
   const authSubmit = document.getElementById("auth-submit");
@@ -1256,6 +1261,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   function openAuthModal(prefillUsername, mode) {
     setAuthMode(mode || "login");
     authUsernameInput.value = prefillUsername || "";
+    authNameInput.value = "";
     authPasswordInput.value = "";
     authPasswordConfirmInput.value = "";
     authOverlay.classList.add("show");
@@ -1268,14 +1274,17 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
 
   async function syncAuthHref() {
     const username = authUsernameInput.value.trim();
+    const name = authNameInput.value.trim();
     const password = authPasswordInput.value;
-    if (!username || !password || (authMode === "signup" && password !== authPasswordConfirmInput.value)) {
+    const invalid = !username || !password
+      || (authMode === "signup" && (!name || password !== authPasswordConfirmInput.value));
+    if (invalid) {
       authSubmit.href = "#";
       return;
     }
     try {
       const hash = await sha256Hex(password);
-      authSubmit.href = buildAuthUrl(authMode, username, hash);
+      authSubmit.href = buildAuthUrl(authMode, username, hash, name);
     } catch (e) {
       authSubmit.href = "#";
     }
@@ -1309,12 +1318,13 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
     const params = new URLSearchParams(window.location.hash.slice(1));
     const status = params.get("auth");
     const user = params.get("user") || "";
+    const name = params.get("name") || "";
     const reason = params.get("reason") || "";
     const action = params.get("action") || "login";
     history.replaceState(null, "", window.location.pathname + window.location.search);
 
     if (status === "ok") {
-      saveAuthUser(user);
+      saveAuthUser(name || user);
       renderSlipAccount();
       renderSlip();
       closeAuthModal();
@@ -1789,7 +1799,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
 
   authTabLogin.addEventListener("click", () => setAuthMode("login"));
   authTabSignup.addEventListener("click", () => setAuthMode("signup"));
-  [authUsernameInput, authPasswordInput, authPasswordConfirmInput].forEach((input) => {
+  [authUsernameInput, authNameInput, authPasswordInput, authPasswordConfirmInput].forEach((input) => {
     input.addEventListener("input", () => {
       input.classList.remove("invalid");
       syncAuthHref();
@@ -1804,6 +1814,13 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
       event.preventDefault();
       authUsernameInput.classList.add("invalid");
       authUsernameInput.focus();
+      return;
+    }
+    if (authMode === "signup" && !authNameInput.value.trim()) {
+      event.preventDefault();
+      authNameInput.classList.add("invalid");
+      authNameInput.focus();
+      showAuthError("Let us know what to call you.");
       return;
     }
     if (!password || password.length < 4) {
