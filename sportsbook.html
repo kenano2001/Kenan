@@ -671,6 +671,15 @@
     margin: 0 0 4px;
   }
   .auth-modal .sub { font-size: 12.5px; color: var(--text-faint); margin: 0 0 16px; }
+  .auth-safari-note {
+    font-size: 11.5px;
+    color: var(--warn);
+    background: var(--warn-soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: -8px 0 16px;
+    line-height: 1.5;
+  }
   .auth-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
   .auth-tab {
     flex: 1;
@@ -1152,6 +1161,7 @@
   <div class="auth-modal" id="auth-modal">
     <h2>Your Account</h2>
     <p class="sub">Sign up to play &mdash; works on any device.</p>
+    <p class="auth-safari-note" id="auth-safari-note" style="display:none;">Safari may ask permission to remember you on this device &mdash; tap Allow so you stay signed in.</p>
     <div class="auth-tabs">
       <button class="auth-tab active" id="auth-tab-login" type="button">Log In</button>
       <button class="auth-tab" id="auth-tab-signup" type="button">Create Account</button>
@@ -1201,6 +1211,28 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   window.addEventListener("pageshow", function (event) {
     if (event.persisted) window.location.reload();
   });
+
+  // Safari's Intelligent Tracking Prevention blocks persistent storage
+  // (localStorage included) for content embedded in an iframe on another
+  // site — exactly how this page runs — even though reads/writes don't
+  // throw within the same load, they silently don't survive a reload.
+  // The Storage Access API is Safari's official way for embedded content
+  // to ask for an exception; it must be tied to a real user gesture, so
+  // we opportunistically request it on the first tap/click anywhere and
+  // again specifically when logging in.
+  let storageAccessRequested = false;
+  function tryRequestStorageAccess() {
+    if (storageAccessRequested) return;
+    if (typeof document.requestStorageAccess !== "function") return;
+    storageAccessRequested = true;
+    document.requestStorageAccess().catch(() => { storageAccessRequested = false; });
+  }
+  document.addEventListener("pointerdown", tryRequestStorageAccess, { once: true, passive: true });
+
+  if (typeof document.requestStorageAccess === "function") {
+    const safariNote = document.getElementById("auth-safari-note");
+    if (safariNote) safariNote.style.display = "block";
+  }
 
   /* ---------------- odds math (mirrors odds_model.py) ---------------- */
   function americanToDecimal(o) { return o > 0 ? 1 + o / 100 : 1 + 100 / Math.abs(o); }
@@ -1966,6 +1998,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   document.getElementById("auth-cancel").addEventListener("click", closeAuthModal);
 
   authSubmit.addEventListener("click", (event) => {
+    tryRequestStorageAccess();
     const username = authUsernameInput.value.trim();
     const password = authPasswordInput.value;
     if (!username) {
