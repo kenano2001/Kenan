@@ -20,6 +20,7 @@ scores rather than projections — see live_odds.gs.
 from __future__ import annotations
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime
 from typing import Optional
@@ -31,6 +32,13 @@ USER_AGENT = "fantasize-odds-model (contact: kenano2001@gmail.com)"
 
 SLEEPER_PROJECTIONS_URL = "https://api.sleeper.app/projections/nfl/{season}/{week}?season_type=regular"
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?week={week}&seasontype=2&year={season}"
+
+# The Apps Script deployment already used for auth/bet-logging also serves
+# a read-only ?action=overrides endpoint for the "Lineup Overrides" sheet
+# tab. Server-to-server requests (this script calling Apps Script) aren't
+# subject to browser CORS, so this works even though a browser fetch()
+# against the same URL wouldn't (see sportsbook.template.html's history).
+APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_nCEKgDRY7wYPMMYkQRFtbPfg5UGaNNyVJU3bKDW4u0V8p7naeO8tHQTXxEZC0OL8Wg/exec"
 
 INJURY_OUT_STATUSES = {"Out", "IR", "PUP", "Suspended", "Doubtful"}
 INJURY_QUESTIONABLE_STATUSES = {"Questionable"}
@@ -87,6 +95,49 @@ def fetch_schedule(season: str, week: int) -> dict[str, dict]:
             if away_abbr:
                 out[away_abbr] = {"kickoff": kickoff, "opponent": home_abbr, "venue_team": home_abbr}
     return out
+
+
+def fetch_lineup_overrides(week: int) -> dict[str, list[dict]]:
+    """
+    team_name -> full replacement starter list, for teams with a manual
+    override on the "Lineup Overrides" sheet tab for this week (private
+    league, so Sleeper's own reported lineup isn't always trustworthy).
+    Each entry: {"name": str, "sleeper_id": str, "position": str}.
+    Teams with no override rows for this week are simply absent.
+    """
+    url = APPS_SCRIPT_URL + "?" + urllib.parse.urlencode({"action": "overrides", "week": week})
+    data = _http_get_json(url)
+    if not isinstance(data, dict) or "overrides" not in data:
+        return {}
+    return data["overrides"]
+
+
+def apply_lineup_overrides(teams: list[tuple[str, TeamLineup, TeamLineup]], week: int) -> list[str]:
+    """
+    Replaces a team's entire starters list with its manual override, if one
+    exists for this week. Overridden players start with projection=0 -- run
+    apply_live_data() afterward to fill in real projections by sleeper_id.
+    """
+    overrides = fetch_lineup_overrides(week)
+    if not overrides:
+        return []
+    notes = []
+    for _, team_a, team_b in teams:
+        for team in (team_a, team_b):
+            override = overrides.get(team.team_name.strip())
+            if not override:
+                continue
+            team.starters = [
+                Player(
+                    name=row["name"],
+                    position=row["position"],
+                    projection=0.0,
+                    sleeper_id=row.get("sleeper_id", ""),
+                )
+                for row in override
+            ]
+            notes.append(f"{team.team_name}: lineup replaced with manual override ({len(override)} starters)")
+    return notes
 
 
 def apply_live_data(
