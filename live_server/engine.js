@@ -145,7 +145,13 @@ async function pollOnce() {
     });
   }
 
-  state = { odds: newOdds, props: newProps, suspended: newSuspended, mode: "live", lastUpdate: now };
+  // Only report "live" when a real NFL game is actually in progress --
+  // otherwise (offseason, weekday, pregame) every player's projection-only
+  // implied total collapses to the same pick'em price, which is correct
+  // math but not something that should ever be shown as a live line.
+  const anyGameLive = Object.values(gameClocks).some((c) => c.state === "in");
+
+  state = { odds: newOdds, props: newProps, suspended: newSuspended, mode: anyGameLive ? "live" : "pregame", lastUpdate: now };
 }
 
 function start() {

@@ -2249,6 +2249,19 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   }
 
   function renderLiveOverlays() {
+    if (liveState.mode !== "live") {
+      // No real game is in progress -- leave the page exactly as it was
+      // pregame: no Live badge, no ML pill overrides, no unboxed props
+      // section. (liveState.mode comes from the server checking real NFL
+      // game state, not just whether the server is reachable.)
+      Object.keys(BOARD_DATA.matchups).forEach((matchupName) => {
+        const badge = document.getElementById("live-badge|" + matchupName);
+        if (badge) badge.classList.remove("show", "suspended");
+        const propsRoot = document.getElementById("live-props|" + matchupName);
+        if (propsRoot) { propsRoot.classList.remove("show"); propsRoot.innerHTML = ""; }
+      });
+      return;
+    }
     Object.keys(BOARD_DATA.matchups).forEach((matchupName) => {
       const m = BOARD_DATA.matchups[matchupName];
       const live = (liveState.odds || {})[matchupName];

@@ -62,6 +62,7 @@ async function handleBet(req, res, body) {
   const stakeNum = parseFloat(stake);
   if (!stakeNum || stakeNum <= 0) return sendJson(res, 400, { ok: false, reason: "bad_stake", message: "Enter a stake." });
   if (!bettorName) return sendJson(res, 400, { ok: false, reason: "no_name", message: "Not signed in." });
+  if (state.mode !== "live") return sendJson(res, 409, { ok: false, reason: "not_live", message: "No games are live right now." });
 
   if (matchupName) {
     // Team moneyline bet.
