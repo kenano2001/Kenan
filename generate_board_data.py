@@ -77,12 +77,19 @@ def build_matchup_entry(name: str, team_a: TeamLineup, team_b: TeamLineup) -> di
     }
 
 
-def build_board() -> dict:
+def build_board(live: bool = False) -> dict:
     power_scores, win_totals, playoff_probs = week1_season_inputs()
+
+    teams = week1_teams()
+    if live:
+        from sleeper_live import apply_live_data
+        notes = apply_live_data(teams, season="2026", week=1)
+        for note in notes:
+            print(f"[live] {note}")
 
     matchups = {
         name: build_matchup_entry(name, team_a, team_b)
-        for name, team_a, team_b in week1_teams()
+        for name, team_a, team_b in teams
     }
 
     team_meta = {

@@ -16,6 +16,7 @@ webfonts, then writes:
 """
 
 from __future__ import annotations
+import argparse
 import base64
 import json
 from pathlib import Path
@@ -42,12 +43,19 @@ def b64(path: Path) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--live", action="store_true",
+        help="Pull live Sleeper projections/injury status (+ weather where in forecast range) before building.",
+    )
+    args = parser.parse_args()
+
     template = (ROOT / "sportsbook.template.html").read_text()
 
     template = template.replace("__BEBAS_B64__", b64(FONTS / "bebasneue.subset.woff2"))
     template = template.replace("__INTER_B64__", b64(FONTS / "inter.subset.woff2"))
     template = template.replace("__JBMONO_B64__", b64(FONTS / "jbmono.subset.woff2"))
-    template = template.replace("__BOARD_DATA_JSON__", json.dumps(build_board()))
+    template = template.replace("__BOARD_DATA_JSON__", json.dumps(build_board(live=args.live)))
 
     (ROOT / "sportsbook.html").write_text(template)
     print(f"Wrote sportsbook.html ({(ROOT / 'sportsbook.html').stat().st_size / 1024:.0f} KB)")
