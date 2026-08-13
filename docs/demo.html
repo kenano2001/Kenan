@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Fantasize -- Live Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#8b3ff0" />
+<style>
+  :root {
+    --bg: #f7f4fb; --surface: #ffffff; --surface-2: #f4eefc; --border: #e4d9f7;
+    --text: #1c1428; --text-dim: #4a3f5c; --text-faint: #8a7f9c;
+    --accent: #8b3ff0; --on-accent: #ffffff;
+    --favorite: #1f9d55; --underdog: #d92b2b; --warn: #b5750a; --warn-soft: #fdf0da;
+    --danger: #d92b2b; --shadow: 0 8px 30px rgba(30,10,60,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #120c1a; --surface: #1c1428; --surface-2: #251b34; --border: #382a4d;
+      --text: #f3edfb; --text-dim: #c3b4dd; --text-faint: #8d7fa8;
+      --favorite: #4ee08a; --underdog: #ff5b6a; --warn: #f0b545; --warn-soft: #3a2c14;
+      --danger: #ff5b6a; --shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 { font-size: 22px; margin: 0 0 4px; }
+  header p { font-size: 13px; color: var(--text-faint); margin: 0; }
+  .clock-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 18px; margin-bottom: 18px; box-shadow: var(--shadow);
+  }
+  .clock { font-family: 'SF Mono', Menlo, monospace; font-size: 20px; font-weight: 700; }
+  .clock-label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  #start-btn {
+    appearance: none; border: none; background: var(--accent); color: var(--on-accent);
+    font-weight: 700; font-size: 14px; padding: 10px 18px; border-radius: 8px; cursor: pointer;
+  }
+  #start-btn:disabled { opacity: 0.5; cursor: default; }
+  #reset-btn { appearance: none; border: 1px solid var(--border); background: none; color: var(--text-dim); font-size: 12px; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 12px; box-shadow: var(--shadow);
+  }
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .card-head .title { font-weight: 700; font-size: 14px; }
+  .live-badge {
+    display: none; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 800;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--danger);
+  }
+  .live-badge.show { display: inline-flex; }
+  .live-badge.suspended { color: var(--warn); }
+  .live-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); animation: pulse 1.4s ease-in-out infinite; }
+  .live-badge.suspended .dot { background: var(--warn); animation: none; }
+  @keyframes pulse { 0%,100% {opacity:1;} 50% {opacity:0.3;} }
+
+  .team-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+  .team-row .name { font-size: 13.5px; }
+  .team-row .score { font-family: monospace; font-size: 13.5px; color: var(--text-dim); margin-right: 10px; }
+  .ml-pill {
+    appearance: none; border: 1px solid var(--border); background: var(--surface-2);
+    font-family: monospace; font-weight: 700; font-size: 13px; padding: 6px 12px; border-radius: 8px;
+    cursor: pointer; min-width: 64px; text-align: center;
+  }
+  .ml-pill.fav { color: var(--favorite); }
+  .ml-pill.dog { color: var(--underdog); }
+  .ml-pill.suspended { opacity: 0.5; cursor: default; }
+  .ml-pill-row { display: flex; align-items: center; gap: 10px; }
+
+  #log-panel, #bets-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-top: 20px; box-shadow: var(--shadow);
+  }
+  #log-panel h2, #bets-panel h2 { font-size: 13px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
+  #log-list, #bets-list { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+  #log-list li, #bets-list li { font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); line-height: 1.5; }
+  #log-list li:last-child, #bets-list li:last-child { border-bottom: none; }
+  #log-list li .t { color: var(--text-faint); font-family: monospace; font-size: 11px; margin-right: 6px; }
+  #log-list li.swing { color: var(--warn); font-weight: 700; }
+
+  .overlay {
+    display: none; position: fixed; inset: 0; z-index: 80; background: rgba(18,12,26,0.55);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .overlay.show { display: flex; }
+  .modal { width: 100%; max-width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 20px; }
+  .modal h3 { margin: 0 0 10px; font-size: 17px; }
+  .modal .sub { font-size: 12.5px; color: var(--text-faint); margin: 0 0 12px; }
+  .modal-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .modal-row .odds { font-family: monospace; font-weight: 700; }
+  .modal input { width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: var(--surface-2); border-radius: 8px; padding: 9px 11px; font-size: 14px; color: var(--text); margin: 12px 0; }
+  .modal .confirm { display: block; width: 100%; appearance: none; border: none; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14px; padding: 11px; border-radius: 10px; cursor: pointer; margin-bottom: 8px; }
+  .modal .cancel { display: block; width: 100%; background: none; border: none; color: var(--text-faint); font-size: 12px; font-weight: 700; padding: 8px; cursor: pointer; }
+  .modal .err { display: none; font-size: 12px; color: var(--underdog); background: var(--warn-soft); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+  .modal .err.show { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Fantasize -- Live Demo</h1>
+    <p>Replaying real 2025 Week 3 results, compressed into 1 hour. Refresh any time -- it picks up exactly where it left off.</p>
+  </header>
+
+  <div class="clock-bar">
+    <div>
+      <div class="clock-label">Compressed game clock</div>
+      <div class="clock" id="clock">Not started</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="reset-btn">Reset</button>
+      <button id="start-btn">Start Demo</button>
+    </div>
+  </div>
+
+  <div id="cards"></div>
+
+  <div id="log-panel">
+    <h2>Play-by-play</h2>
+    <ul id="log-list"></ul>
+  </div>
+
+  <div id="bets-panel" style="display:none;">
+    <h2>Your demo bets</h2>
+    <ul id="bets-list"></ul>
+  </div>
+</div>
+
+<div class="overlay" id="bet-overlay">
+  <div class="modal">
+    <h3>Live Bet</h3>
+    <p class="sub" id="bet-matchup">--</p>
+    <div class="err" id="bet-err"></div>
+    <div class="modal-row"><span id="bet-team">--</span><span class="odds" id="bet-odds">--</span></div>
+    <input id="bet-stake" type="number" min="1" step="1" value="10" />
+    <button class="confirm" id="bet-confirm">Place Live Bet</button>
+    <button class="cancel" id="bet-cancel">Cancel</button>
+  </div>
+</div>
+
+<script>
+const DEMO = {"numCheckpoints": 16, "checkpointIntervalMs": 225000, "players": {"Mayfield": {"team": "CDZ NUTZ", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 8.52, 0.0, 0.0, 4.83, 0.0, 0.0, 0.0, 0.0, 0.0, 4.37]}, "Darnold": {"team": "CDZ NUTZ", "deltas": [0.0, 0.0, 7.01, 0.0, 0.0, 6.39, 0.0, 0.0, 3.32, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "J.Taylor": {"team": "CDZ NUTZ", "deltas": [0.0, 10.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.22, 0.0, 5.63, 0.0, 0.0, 0.0, 4.55, 0.0]}, "Hubbard": {"team": "CDZ NUTZ", "deltas": [0.0, 0.0, 0.0, 3.04, 0.0, 0.0, 0.0, 0.0, 4.51, 1.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Chase": {"team": "CDZ NUTZ", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.56, 0.0, 3.84, 0.0]}, "Smith-Njigba": {"team": "CDZ NUTZ", "deltas": [0.0, 0.0, 5.24, 0.0, 6.93, 0.0, 0.0, 0.0, 0.0, 3.59, 0.0, 0.0, 0.0, 0.0, 0.0, 2.34]}, "Lamb": {"team": "CDZ NUTZ", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "McBride": {"team": "CDZ NUTZ", "deltas": [0.0, 3.79, 0.0, 0.0, 0.0, 0.0, 3.88, 0.0, 0.0, 5.13, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "DEN DEF": {"team": "CDZ NUTZ", "deltas": [0.0, 0.0, 0.0, 5.31, 0.0, 0.0, 0.0, 2.93, 0.0, 0.0, 0.0, 0.0, 0.0, 1.76, 0.0, 0.0]}, "C.Williams": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 11.9, 0.0, 7.24, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.43, 0.0, 4.55, 0.0]}, "C.Brown": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 2.74, 0.0, 0.0, 0.0, 0.0, 1.26, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Barkley": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.79, 2.71, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Henry": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 0.0, 0.0, 3.37, 5.02, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.81, 0.0, 0.0]}, "Corum": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 0.0, 2.64, 0.0, 0.0, 2.66, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "A.Brown": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 4.38, 0.0, 0.0, 6.3, 0.0, 0.0, 0.0, 0.0, 2.78, 6.44, 0.0]}, "Lemon": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Bowers": {"team": "Mr. Big Chest", "deltas": [0.0, 0.0, 3.65, 0.0, 0.0, 0.0, 4.15, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "NYG DEF": {"team": "Mr. Big Chest", "deltas": [0.0, 1.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.3, 0.0, 0.0, 0.0]}, "Prescott": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 0.0, 0.0, 5.23, 0.0, 3.15, 0.0, 0.0, 0.0, 0.0, 5.66, 0.0, 0.0, 0.0, 0.0]}, "Goff": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 0.0, 0.0, 4.38, 0.0, 0.0, 0.0, 0.0, 3.78, 0.0, 0.0, 0.0, 0.0, 0.0, 4.52]}, "B.Robinson": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7.24, 0.0, 0.0, 3.01, 0.0, 3.35, 0.0]}, "Gibbs": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 3.66, 0.0, 0.0, 0.0, 15.86, 0.0, 0.0, 0.0, 0.0, 4.88, 0.0, 0.0, 0.0, 0.0]}, "McCaffrey": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 6.7, 0.0, 0.0, 0.0, 6.54, 0.0, 4.01, 0.0, 0.0, 0.0, 0.0, 1.75, 0.0, 0.0]}, "Nabers": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Jefferson": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 0.0, 0.0, 3.9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.64, 0.0, 0.0, 3.46]}, "Loveland": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.21, 0.0, 0.0, 0.0, 0.0, 1.39, 0.0, 0.0, 0.0, 0.0]}, "BAL DEF": {"team": "kyleullrich8", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.53, 0.0, 0.0, 0.0, 0.0, -1.47, 0.0, 0.0, 0.0, 0.0]}, "Mahomes": {"team": "leagueisass", "deltas": [0.0, 0.0, 5.61, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.86, 0.0, 0.0, 0.0, 0.0, 5.69, 0.0]}, "D.Jones": {"team": "leagueisass", "deltas": [0.0, 0.0, 4.11, 0.0, 0.0, 0.0, 6.22, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.49]}, "Love": {"team": "leagueisass", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Etienne": {"team": "leagueisass", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 4.44, 1.33, 0.0, 0.0, 0.0, 5.83, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Judkins": {"team": "leagueisass", "deltas": [0.0, 0.0, 9.03, 0.0, 3.72, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.25, 0.0, 0.0]}, "Pickens": {"team": "leagueisass", "deltas": [0.0, 2.85, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.77, 0.0, 6.68, 0.0]}, "McConkey": {"team": "leagueisass", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.7, 4.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Kraft": {"team": "leagueisass", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 1.65, 0.0, 0.0, 2.75, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "TB DEF": {"team": "leagueisass", "deltas": [0.0, 6.8, 0.0, 0.0, 5.04, 0.0, 3.16, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Burrow": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Purdy": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Cook": {"team": "Buc-cee's", "deltas": [0.0, 4.78, 0.0, 0.0, 0.0, 0.0, 0.0, 8.57, 0.0, 0.0, 2.95, 0.0, 3.0, 0.0, 0.0, 0.0]}, "Irving": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 0.0, 0.0, 2.54, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.76, 0.0, 2.6, 0.0, 0.0]}, "Skattebo": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.0, 5.29, 5.51, 4.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Harrison": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.9, 0.0]}, "Nacua": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 6.99, 0.0, 2.72, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7.59, 0.0, 0.0, 0.0]}, "LaPorta": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.12, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.18]}, "SF DEF": {"team": "Buc-cee's", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 1.55, 0.0, 0.0, 0.0, 0.0, 0.0, 4.45, 0.0, 0.0, 0.0, 0.0]}, "Dart": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.08, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.22]}, "Hurts": {"team": "fjoutlet", "deltas": [0.0, 0.0, 8.33, 0.0, 0.0, 0.0, 0.0, 0.0, 3.97, 0.0, 8.25, 0.0, 0.0, 8.49, 0.0, 0.0]}, "K.Walker": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 9.31, 4.66, 0.0, 0.0, 0.0, 0.0, 3.53, 0.0, 0.0, 0.0, 0.0]}, "Hampton": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.16, 0.0, 0.0, 5.93, 6.25, 0.0, 5.56]}, "Rice": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "D.Moore": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 4.74, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.79, 4.27, 0.0, 0.0, 0.0]}, "Olave": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 5.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.26, 0.0, 0.0, 3.94, 0.0]}, "Schultz": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 3.71, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.69, 0.0]}, "HOU DEF": {"team": "fjoutlet", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 2.02, 0.0, 1.98, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "J.Allen": {"team": "AZ Rapids", "deltas": [0.0, 0.0, 0.0, 0.0, 5.23, 8.94, 0.0, 0.0, 0.0, 0.0, 0.0, 2.61, 0.0, 0.0, 0.0, 6.24]}, "Nix": {"team": "AZ Rapids", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.34, 0.0, 4.1, 2.98, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Jacobs": {"team": "AZ Rapids", "deltas": [0.0, 0.0, 0.0, 2.73, 3.86, 0.0, 0.0, 0.0, 0.0, 0.0, 3.31, 0.0, 0.0, 0.0, 0.0, 0.0]}, "K.Williams": {"team": "AZ Rapids", "deltas": [0.0, 0.0, 5.23, 0.0, 0.0, 0.0, 0.0, 5.69, 0.0, 3.71, 0.0, 0.0, 0.0, 0.0, 0.0, 3.57]}, "T.Henderson": {"team": "AZ Rapids", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.27, 0.0, 0.0, 0.0, 0.0, 0.0, 1.93]}, "Andrews": {"team": "AZ Rapids", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.27, 0.0, 0.0, 0.0, 7.18, 6.93, 4.72, 0.0, 0.0, 0.0]}, "PIT DEF": {"team": "AZ Rapids", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 5.92, 3.5, 0.0, 0.0, 3.23, 0.0, 0.0, 6.35, 0.0, 0.0, 0.0]}, "L.Jackson": {"team": "omaralb", "deltas": [0.0, 0.0, 3.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7.68, 10.08, 0.0, 0.0, 5.56]}, "B.Hall": {"team": "omaralb", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.12, 0.0, 0.0, 4.08, 0.0, 0.0]}, "Swift": {"team": "omaralb", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 2.3, 0.0, 0.0, 0.0, 4.03, 0.0, 0.0, 2.97, 0.0, 0.0, 0.0]}, "St.Brown": {"team": "omaralb", "deltas": [0.0, 0.0, 7.28, 0.0, 0.0, 0.0, 0.0, 0.0, 6.68, 0.0, 0.0, 0.0, 0.0, 3.24, 0.0, 0.0]}, "Collins": {"team": "omaralb", "deltas": [0.0, 0.0, 0.0, 3.09, 0.0, 0.0, 4.24, 0.0, 0.0, 0.0, 7.95, 3.12, 0.0, 0.0, 0.0, 0.0]}, "Flowers": {"team": "omaralb", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.35, 0.95, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "D.Smith": {"team": "omaralb", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.59, 0.0, 0.0, 0.0, 4.99, 0.0, 0.0, 0.0, 0.0, 5.42]}, "Kelce": {"team": "omaralb", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0]}, "DET DEF": {"team": "omaralb", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.79, 0.0, 0.0, 2.51, 0.0, 3.7, 0.0, 0.0, 0.0]}, "Herbert": {"team": "The Sopranos", "deltas": [0.0, 0.0, 0.0, 5.13, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.8, 0.0, 0.0, 4.67, 0.0]}, "Lawrence": {"team": "The Sopranos", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.81, 0.0, 2.4, 0.0, 0.0, 3.57, 0.0, 0.0, 0.0]}, "Achane": {"team": "The Sopranos", "deltas": [0.0, 0.0, 3.99, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.12, 4.49, 0.0, 0.0, 0.0, 0.0]}, "J.Warren": {"team": "The Sopranos", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 3.45, 0.0, 2.12, 0.0, 0.0, 5.03, 0.0, 0.0, 0.0, 0.0, 0.0]}, "McMillan": {"team": "The Sopranos", "deltas": [0.0, 0.0, 1.65, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.65, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Burden": {"team": "The Sopranos", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.37, 0.0, 5.49, 6.31, 2.13, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Tyson": {"team": "The Sopranos", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "T.Warren": {"team": "The Sopranos", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.86, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.44, 0.0]}, "PHI DEF": {"team": "The Sopranos", "deltas": [0.0, 5.75, 0.0, 2.28, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.97, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Maye": {"team": "The Notorious Ones", "deltas": [0.0, 0.0, 0.0, 5.54, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.73, 4.94, 4.01]}, "Daniels": {"team": "The Notorious Ones", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "Jeanty": {"team": "The Notorious Ones", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.77, 0.0, 0.0, 0.0, 0.0, 0.0, 3.53, 0.0, 0.0]}, "J.Williams": {"team": "The Notorious Ones", "deltas": [0.0, 4.08, 0.0, 0.0, 0.0, 0.0, 0.0, 3.63, 0.0, 0.0, 0.0, 0.0, 1.99, 0.0, 0.0, 0.0]}, "London": {"team": "The Notorious Ones", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.57, 0.0, 0.0, 0.0, 0.0, 0.0, 3.5, 1.93]}, "Higgins": {"team": "The Notorious Ones", "deltas": [0.0, 0.49, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.51, 0.0, 0.0, 0.0]}, "Waddle": {"team": "The Notorious Ones", "deltas": [0.0, 0.0, 6.06, 0.0, 0.0, 0.0, 0.0, 3.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.04, 0.0]}, "H.Henry": {"team": "The Notorious Ones", "deltas": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.94, 0.0, 2.87, 0.0, 6.45, 8.74, 0.0, 0.0, 0.0, 0.0]}, "SEA DEF": {"team": "The Notorious Ones", "deltas": [0.0, 0.0, 4.94, 0.0, 0.0, 0.0, 0.0, 4.89, 0.0, 0.0, 6.17, 0.0, 0.0, 0.0, 0.0, 0.0]}}, "matchups": [{"name": "CDZ NUTZ vs Mr. Big Chest", "teamA": "CDZ NUTZ", "teamB": "Mr. Big Chest", "playersA": ["Mayfield", "Darnold", "J.Taylor", "Hubbard", "Chase", "Smith-Njigba", "Lamb", "McBride", "DEN DEF"], "playersB": ["C.Williams", "C.Brown", "Barkley", "Henry", "Corum", "A.Brown", "Lemon", "Bowers", "NYG DEF"]}, {"name": "kyleullrich8 vs leagueisass", "teamA": "kyleullrich8", "teamB": "leagueisass", "playersA": ["Prescott", "Goff", "B.Robinson", "Gibbs", "McCaffrey", "Nabers", "Jefferson", "Loveland", "BAL DEF"], "playersB": ["Mahomes", "D.Jones", "Love", "Etienne", "Judkins", "Pickens", "McConkey", "Kraft", "TB DEF"]}, {"name": "Buc-cee's vs fjoutlet", "teamA": "Buc-cee's", "teamB": "fjoutlet", "playersA": ["Burrow", "Purdy", "Cook", "Irving", "Skattebo", "Harrison", "Nacua", "LaPorta", "SF DEF"], "playersB": ["Dart", "Hurts", "K.Walker", "Hampton", "Rice", "D.Moore", "Olave", "Schultz", "HOU DEF"]}, {"name": "AZ Rapids vs omaralb", "teamA": "AZ Rapids", "teamB": "omaralb", "playersA": ["J.Allen", "Nix", "Jacobs", "K.Williams", "T.Henderson", "Andrews", "PIT DEF"], "playersB": ["L.Jackson", "B.Hall", "Swift", "St.Brown", "Collins", "Flowers", "D.Smith", "Kelce", "DET DEF"]}, {"name": "The Sopranos vs The Notorious", "teamA": "The Sopranos", "teamB": "The Notorious Ones", "playersA": ["Herbert", "Lawrence", "Achane", "J.Warren", "McMillan", "Burden", "Tyson", "T.Warren", "PHI DEF"], "playersB": ["Maye", "Daniels", "Jeanty", "J.Williams", "London", "Higgins", "Waddle", "H.Henry", "SEA DEF"]}]};
+</script>
+<script>
+(function () {
+  "use strict";
+  const START_KEY = "fantasize_demo_start_ts";
+  const BETS_KEY = "fantasize_demo_bets";
+  const SUSPEND_SWING_THRESHOLD = 0.08;
+  const SUSPEND_DURATION_MS = 90 * 1000;
+  const TEAM_SD = 29.0;
+
+  function erf(x) {
+    const sign = x < 0 ? -1 : 1; x = Math.abs(x);
+    const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+    const t = 1/(1+p*x);
+    const y = 1 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+    return sign*y;
+  }
+  function winProb(margin, sd) { return 0.5 * (1 + erf((margin/sd) / Math.sqrt(2))); }
+  function probToAmerican(p) {
+    // Clamped tighter than the pregame model (which rarely sees margins
+    // this decisive) so a real blowout reads as "extremely lopsided" (e.g.
+    // -19900) rather than a broken-looking number like -99900.
+    p = Math.max(0.005, Math.min(0.995, p));
+    return p >= 0.5 ? Math.round(-100*p/(1-p)) : Math.round(100*(1-p)/p);
+  }
+  function americanToDecimal(o) { return o > 0 ? 1 + o/100 : 1 + 100/Math.abs(o); }
+  function priceTwoWay(pA, margin) { return [probToAmerican(pA*margin), probToAmerican((1-pA)*margin)]; }
+  function fmtOdds(o) { return (o > 0 ? "+" : "") + o; }
+
+  function getStart() { const v = localStorage.getItem(START_KEY); return v ? parseInt(v, 10) : null; }
+  function setStart(ts) { localStorage.setItem(START_KEY, String(ts)); }
+
+  function elapsedInfo() {
+    const start = getStart();
+    if (!start) return null;
+    const elapsed = Date.now() - start;
+    const cpFloat = Math.min(DEMO.numCheckpoints - 1, elapsed / DEMO.checkpointIntervalMs);
+    return { elapsed, checkpoint: Math.floor(cpFloat), done: elapsed >= DEMO.checkpointIntervalMs * (DEMO.numCheckpoints - 1) };
+  }
+
+  function cumulativeAt(playerName, checkpoint) {
+    const deltas = DEMO.players[playerName].deltas;
+    let sum = 0;
+    for (let i = 0; i <= checkpoint; i++) sum += deltas[i];
+    return Math.round(sum * 10) / 10;
+  }
+
+  function teamTotals(matchup, checkpoint) {
+    const a = matchup.playersA.reduce((s, n) => s + cumulativeAt(n, checkpoint), 0);
+    const b = matchup.playersB.reduce((s, n) => s + cumulativeAt(n, checkpoint), 0);
+    return [Math.round(a*10)/10, Math.round(b*10)/10];
+  }
+
+  function liveSdFor(checkpoint) {
+    // Floor raised (vs the real Code.gs engine's 0.05) purely for demo
+    // display purposes -- keeps compressed blowouts from producing
+    // vertigo-inducing odds like -99900 on-screen.
+    const fractionRemaining = Math.max(0.12, 1 - checkpoint / (DEMO.numCheckpoints - 1));
+    return TEAM_SD * Math.sqrt(fractionRemaining);
+  }
+
+  // Everything below is a pure function of (start_ts, wall-clock now) --
+  // no mutable state is kept between renders, so a hard refresh at any
+  // point produces exactly the same result as having watched it tick
+  // there live. That matters because suspension state has to survive
+  // "I will have the platform open and refresh" (the actual real usage
+  // pattern), not just a continuously-open tab.
+
+  function winProbAt(matchup, checkpoint) {
+    if (checkpoint < 0) return 0.5;
+    const [ptsA, ptsB] = teamTotals(matchup, checkpoint);
+    return winProb(ptsA - ptsB, liveSdFor(checkpoint));
+  }
+
+  function checkpointStartTime(checkpoint) {
+    return getStart() + checkpoint * DEMO.checkpointIntervalMs;
+  }
+
+  function suspensionInfo(matchup, checkpoint, now) {
+    if (checkpoint <= 0) return { suspended: false, justSwung: false };
+    const prevP = winProbAt(matchup, checkpoint - 1);
+    const curP = winProbAt(matchup, checkpoint);
+    const swungThisCheckpoint = Math.abs(curP - prevP) >= SUSPEND_SWING_THRESHOLD;
+    if (!swungThisCheckpoint) return { suspended: false, justSwung: false };
+    const withinWindow = now - checkpointStartTime(checkpoint) < SUSPEND_DURATION_MS;
+    return { suspended: withinWindow, justSwung: true };
+  }
+
+  function scorerAt(matchup, checkpoint) {
+    const all = [...matchup.playersA, ...matchup.playersB];
+    return all.filter((n) => (DEMO.players[n].deltas[checkpoint] || 0) > 0.4)
+      .map((n) => ({ name: n, team: DEMO.players[n].team, pts: DEMO.players[n].deltas[checkpoint] }));
+  }
+
+  // Rebuilt from scratch every render (cheap -- 16 checkpoints x 5
+  // matchups) so the log is always the full, correct history up through
+  // the current checkpoint, regardless of when the page was opened.
+  function renderLog(uptoCheckpoint) {
+    const entries = [];
+    for (let cp = 1; cp <= uptoCheckpoint; cp++) {
+      const mins = (cp * DEMO.checkpointIntervalMs / 60000).toFixed(1);
+      DEMO.matchups.forEach((m) => {
+        scorerAt(m, cp).forEach((s) => {
+          entries.push({ mins, isSwing: false, text: s.name + " (" + s.team + ") scores -- +" + s.pts.toFixed(1) + " pts" });
+        });
+        const { justSwung } = suspensionInfo(m, cp, Infinity);
+        if (justSwung) {
+          entries.push({ mins, isSwing: true, text: "⚠️ Big swing on " + m.name + " -- betting paused while the line resets" });
+        }
+      });
+    }
+    entries.reverse();
+    const list = document.getElementById("log-list");
+    list.innerHTML = "";
+    entries.slice(0, 80).forEach((e) => {
+      const li = document.createElement("li");
+      if (e.isSwing) li.className = "swing";
+      li.innerHTML = '<span class="t">' + e.mins + 'm</span>' + e.text;
+      list.appendChild(li);
+    });
+  }
+
+  let currentModal = null;
+
+  function renderCards() {
+    const info = elapsedInfo();
+    const root = document.getElementById("cards");
+    root.innerHTML = "";
+
+    DEMO.matchups.forEach((m) => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      if (!info) {
+        card.innerHTML = '<div class="card-head"><span class="title">' + m.name + '</span></div>' +
+          '<div class="team-row"><span class="name">' + m.teamA + '</span><span class="score">proj</span></div>' +
+          '<div class="team-row"><span class="name">' + m.teamB + '</span><span class="score">proj</span></div>';
+        root.appendChild(card);
+        return;
+      }
+
+      const cp = info.checkpoint;
+      const [ptsA, ptsB] = teamTotals(m, cp);
+      const margin = ptsA - ptsB;
+      const sd = liveSdFor(cp);
+      const pA = winProb(margin, sd);
+      const [mlA, mlB] = priceTwoWay(pA, 1.08);
+
+      const { suspended: isSuspended } = suspensionInfo(m, cp, Date.now());
+
+      card.innerHTML =
+        '<div class="card-head"><span class="title">' + m.name + '</span>' +
+        '<span class="live-badge show' + (isSuspended ? ' suspended' : '') + '">' +
+        '<span class="dot"></span><span>' + (isSuspended ? "Paused" : "Live") + '</span></span></div>' +
+        '<div class="team-row"><span class="name">' + m.teamA + '</span>' +
+        '<span class="ml-pill-row"><span class="score">' + ptsA.toFixed(1) + '</span>' +
+        '<button class="ml-pill ' + (mlA < 0 ? "fav" : "dog") + (isSuspended ? " suspended" : "") + '" data-team="A" data-matchup="' + m.name + '">' + fmtOdds(mlA) + '</button></span></div>' +
+        '<div class="team-row"><span class="name">' + m.teamB + '</span>' +
+        '<span class="ml-pill-row"><span class="score">' + ptsB.toFixed(1) + '</span>' +
+        '<button class="ml-pill ' + (mlB < 0 ? "fav" : "dog") + (isSuspended ? " suspended" : "") + '" data-team="B" data-matchup="' + m.name + '">' + fmtOdds(mlB) + '</button></span></div>';
+
+      root.appendChild(card);
+    });
+
+    root.querySelectorAll(".ml-pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.classList.contains("suspended")) {
+          alert("Betting is paused on this game for a moment while the odds catch up -- try again shortly.");
+          return;
+        }
+        openBetModal(btn.getAttribute("data-matchup"), btn.getAttribute("data-team"), btn.textContent);
+      });
+    });
+  }
+
+  function openBetModal(matchupName, side, oddsText) {
+    const m = DEMO.matchups.find((x) => x.name === matchupName);
+    const teamName = side === "A" ? m.teamA : m.teamB;
+    currentModal = { matchupName, side, odds: parseInt(oddsText, 10) };
+    document.getElementById("bet-matchup").textContent = matchupName;
+    document.getElementById("bet-team").textContent = teamName;
+    document.getElementById("bet-odds").textContent = oddsText;
+    document.getElementById("bet-err").classList.remove("show");
+    document.getElementById("bet-stake").value = "10";
+    document.getElementById("bet-overlay").classList.add("show");
+  }
+  function closeBetModal() { document.getElementById("bet-overlay").classList.remove("show"); currentModal = null; }
+  document.getElementById("bet-cancel").addEventListener("click", closeBetModal);
+
+  function loadDemoBets() { try { return JSON.parse(localStorage.getItem(BETS_KEY) || "[]"); } catch (e) { return []; } }
+  function saveDemoBets(bets) { localStorage.setItem(BETS_KEY, JSON.stringify(bets)); }
+  function renderDemoBets() {
+    const bets = loadDemoBets();
+    const panel = document.getElementById("bets-panel");
+    const list = document.getElementById("bets-list");
+    if (!bets.length) { panel.style.display = "none"; return; }
+    panel.style.display = "block";
+    list.innerHTML = "";
+    bets.slice().reverse().forEach((b) => {
+      const li = document.createElement("li");
+      li.textContent = "$" + b.stake.toFixed(2) + " on " + b.team + " (" + fmtOdds(b.odds) + ") -- to win $" + b.toWin.toFixed(2);
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById("bet-confirm").addEventListener("click", () => {
+    if (!currentModal) return;
+    const info = elapsedInfo();
+    const m = DEMO.matchups.find((x) => x.name === currentModal.matchupName);
+    const { suspended: isSuspended } = suspensionInfo(m, info.checkpoint, Date.now());
+    if (isSuspended) {
+      const err = document.getElementById("bet-err");
+      err.textContent = "Betting is paused on this game for a moment while the odds catch up -- try again shortly.";
+      err.classList.add("show");
+      return;
+    }
+    const stake = parseFloat(document.getElementById("bet-stake").value) || 0;
+    if (stake <= 0) return;
+    const payout = Math.round(stake * americanToDecimal(currentModal.odds) * 100) / 100;
+    const bets = loadDemoBets();
+    bets.push({ team: document.getElementById("bet-team").textContent, odds: currentModal.odds, stake, toWin: payout - stake });
+    saveDemoBets(bets);
+    renderDemoBets();
+    closeBetModal();
+  });
+
+  function tick() {
+    const info = elapsedInfo();
+    const clockEl = document.getElementById("clock");
+    if (!info) {
+      clockEl.textContent = "Not started";
+      document.getElementById("start-btn").disabled = false;
+      document.getElementById("log-list").innerHTML = "";
+    } else {
+      const mins = Math.floor(info.elapsed / 60000);
+      const secs = Math.floor((info.elapsed % 60000) / 1000);
+      clockEl.textContent = (info.done ? "FINAL -- " : "") + mins + ":" + String(secs).padStart(2, "0") + " elapsed";
+      document.getElementById("start-btn").disabled = true;
+      renderCards();
+      renderLog(info.checkpoint);
+    }
+    renderDemoBets();
+  }
+
+  document.getElementById("start-btn").addEventListener("click", () => {
+    setStart(Date.now());
+    saveDemoBets([]);
+    tick();
+  });
+  document.getElementById("reset-btn").addEventListener("click", () => {
+    localStorage.removeItem(START_KEY);
+    saveDemoBets([]);
+    tick();
+  });
+
+  tick();
+  setInterval(tick, 5000);
+})();
+</script>
+</body>
+</html>
