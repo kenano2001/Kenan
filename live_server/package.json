@@ -1,0 +1,13 @@
+{
+  "name": "fantasize-live-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Always-on live odds engine for Fantasize -- continuously polls Sleeper + ESPN and serves live team/player-prop pricing with server-authoritative bet placement.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
