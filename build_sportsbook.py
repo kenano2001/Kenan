@@ -31,7 +31,7 @@ DOCS = ROOT / "docs"
 # deployed -- e.g. "https://fantasize-live-xxxx.onrender.com". Left as a
 # placeholder until then; the frontend detects the placeholder and simply
 # skips live polling, so pregame betting is unaffected either way.
-LIVE_SERVER_URL = "REPLACE_ME_LIVE_SERVER_URL"
+LIVE_SERVER_URL = "https://kenan-l555.onrender.com"
 
 STANDALONE_HEAD_EXTRA = """
 <link rel="manifest" href="./manifest.json" />

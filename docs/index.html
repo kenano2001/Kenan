@@ -2179,7 +2179,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   // Talks to the always-on live-odds server (see /live_server in the
   // repo) with plain fetch() -- that server sets real CORS headers,
   // unlike Apps Script, so no navigation/JSONP workaround is needed here.
-  const LIVE_SERVER_URL = "REPLACE_ME_LIVE_SERVER_URL";
+  const LIVE_SERVER_URL = "https://kenan-l555.onrender.com";
   const LIVE_POLL_MS = 20000;
   let liveState = { odds: {}, props: {}, suspended: {} };
   let liveBetContext = null; // { kind: "matchup"|"prop", matchupName?, teamName?, playerName?, side, odds }
