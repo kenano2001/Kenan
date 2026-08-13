@@ -27,6 +27,12 @@ ROOT = Path(__file__).parent
 FONTS = ROOT / "fonts"
 DOCS = ROOT / "docs"
 
+# Set this once the always-on live-odds server (see live_server/) is
+# deployed -- e.g. "https://fantasize-live-xxxx.onrender.com". Left as a
+# placeholder until then; the frontend detects the placeholder and simply
+# skips live polling, so pregame betting is unaffected either way.
+LIVE_SERVER_URL = "REPLACE_ME_LIVE_SERVER_URL"
+
 STANDALONE_HEAD_EXTRA = """
 <link rel="manifest" href="./manifest.json" />
 <link rel="icon" href="./favicon.png" />
@@ -56,6 +62,7 @@ def main() -> None:
     template = template.replace("__INTER_B64__", b64(FONTS / "inter.subset.woff2"))
     template = template.replace("__JBMONO_B64__", b64(FONTS / "jbmono.subset.woff2"))
     template = template.replace("__BOARD_DATA_JSON__", json.dumps(build_board(live=args.live)))
+    template = template.replace("__LIVE_SERVER_URL__", LIVE_SERVER_URL)
 
     (ROOT / "sportsbook.html").write_text(template)
     print(f"Wrote sportsbook.html ({(ROOT / 'sportsbook.html').stat().st_size / 1024:.0f} KB)")

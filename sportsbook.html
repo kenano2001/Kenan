@@ -773,6 +773,32 @@
   .pill.live .pill-odds { position: relative; }
   .pill.suspended { opacity: 0.55; cursor: default; }
 
+  .live-props {
+    display: none;
+    padding: 10px 6px 4px;
+    border-top: 1px dashed var(--border);
+    margin-top: 6px;
+  }
+  .live-props.show { display: block; }
+  .live-props-title {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .live-prop-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .live-prop-name { font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live-prop-line { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); flex: none; margin-right: 6px; }
+  .live-prop-pills { display: flex; gap: 6px; flex: none; }
+
   .live-bet-modal .sub { font-size: 12.5px; color: var(--text-faint); margin: 0 0 4px; }
   .live-bet-score {
     font-family: var(--font-mono);
@@ -1624,6 +1650,7 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
       ]),
       teamRow(m.team_a, m.proj_a, sprAKey, sprAOdds, overKey, "Over", ml[m.team_a]),
       teamRow(m.team_b, m.proj_b, sprBKey, sprBOdds, underKey, "Under", ml[m.team_b]),
+      el("div", { class: "live-props", id: "live-props|" + name }),
     ]);
 
     const expanderBody = el("div", { class: "expander-body" }, [
@@ -2138,47 +2165,30 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   });
 
   /* ---------------- live odds (in-game) ---------------- */
-  // Reads/writes go through the same Apps Script deployment as auth/bet
-  // logging, but via JSONP (a <script src> load, not fetch()) since Apps
-  // Script doesn't return CORS headers -- confirmed directly against the
-  // live deployment, a browser fetch() to it gets silently blocked even
-  // though plain navigation (how auth/logging work) is unaffected.
+  // Talks to the always-on live-odds server (see /live_server in the
+  // repo) with plain fetch() -- that server sets real CORS headers,
+  // unlike Apps Script, so no navigation/JSONP workaround is needed here.
+  const LIVE_SERVER_URL = "REPLACE_ME_LIVE_SERVER_URL";
   const LIVE_POLL_MS = 20000;
-  let liveState = { odds: {}, suspended: {} };
-  let liveBetContext = null; // { matchupName, teamName, odds, live }
+  let liveState = { odds: {}, props: {}, suspended: {} };
+  let liveBetContext = null; // { kind: "matchup"|"prop", matchupName?, teamName?, playerName?, side, odds }
 
-  function jsonpRequest(params, callbackFn) {
-    const cbName = "__jsonp_cb_" + Math.random().toString(36).slice(2);
-    window[cbName] = function (data) {
-      delete window[cbName];
-      script.remove();
-      callbackFn(data);
-    };
-    const url = SHEET_LOG_URL + "?" + new URLSearchParams({ ...params, callback: cbName }).toString();
-    const script = document.createElement("script");
-    script.src = url;
-    script.onerror = () => { delete window[cbName]; script.remove(); };
-    document.body.appendChild(script);
-  }
-
-  function pollLiveOdds() {
-    jsonpRequest({ action: "liveodds" }, (data) => {
-      liveState = data || { odds: {}, suspended: {} };
+  async function pollLiveOdds() {
+    if (!LIVE_SERVER_URL || LIVE_SERVER_URL.indexOf("REPLACE") !== -1) return; // not configured yet
+    try {
+      const resp = await fetch(LIVE_SERVER_URL + "/live");
+      if (!resp.ok) return;
+      liveState = await resp.json();
       renderLiveOverlays();
-    });
+    } catch (e) {
+      // Server may be cold-starting (free-tier hosting) or briefly
+      // unreachable -- just skip this tick, the next poll will catch up.
+    }
   }
 
   function startLivePolling() {
     pollLiveOdds();
     setInterval(pollLiveOdds, LIVE_POLL_MS);
-  }
-
-  function findLiveEntry(matchupData) {
-    const entries = Object.values(liveState.odds || {});
-    return entries.find((o) =>
-      (o.teamA === matchupData.team_a && o.teamB === matchupData.team_b) ||
-      (o.teamA === matchupData.team_b && o.teamB === matchupData.team_a)
-    );
   }
 
   function updateMlPill(matchupName, teamName, odds, suspended) {
@@ -2193,16 +2203,50 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     }
   }
 
+  function renderLiveProps(matchupName, teamA, teamB) {
+    const root = document.getElementById("live-props|" + matchupName);
+    if (!root) return;
+    const players = Object.entries(liveState.props || {})
+      .filter(([, p]) => p.team === teamA || p.team === teamB);
+    if (!players.length) { root.classList.remove("show"); root.innerHTML = ""; return; }
+
+    root.classList.add("show");
+    root.innerHTML = "";
+    root.appendChild(el("div", { class: "live-props-title", text: "Live Player Props" }));
+    players.forEach(([name, p]) => {
+      const suspended = !!(liveState.suspended && liveState.suspended["prop:" + name]);
+      const row = el("div", { class: "live-prop-row" }, [
+        el("span", { class: "live-prop-name", text: name }),
+        el("span", { class: "live-prop-line tabular", text: "O/U " + p.line.toFixed(1) }),
+        el("span", { class: "live-prop-pills" }, [
+          el("button", {
+            class: "pill live" + (suspended ? " suspended" : ""), type: "button",
+            onclick: () => (suspended ? alertSuspended() : openLiveBetModal({ kind: "prop", playerName: name, side: "Over", odds: p.over })),
+          }, [el("span", { class: "pill-odds tabular " + oddsClass(p.over), text: "O " + fmtOdds(p.over) })]),
+          el("button", {
+            class: "pill live" + (suspended ? " suspended" : ""), type: "button",
+            onclick: () => (suspended ? alertSuspended() : openLiveBetModal({ kind: "prop", playerName: name, side: "Under", odds: p.under })),
+          }, [el("span", { class: "pill-odds tabular " + oddsClass(p.under), text: "U " + fmtOdds(p.under) })]),
+        ]),
+      ]);
+      root.appendChild(row);
+    });
+  }
+
+  function alertSuspended() {
+    alert("Betting is paused on this game for a moment while the odds catch up — try again shortly.");
+  }
+
   function renderLiveOverlays() {
     Object.keys(BOARD_DATA.matchups).forEach((matchupName) => {
       const m = BOARD_DATA.matchups[matchupName];
-      const live = findLiveEntry(m);
+      const live = (liveState.odds || {})[matchupName];
       const badge = document.getElementById("live-badge|" + matchupName);
       if (!live) {
         if (badge) badge.classList.remove("show");
         return;
       }
-      const suspended = !!(liveState.suspended && liveState.suspended[live.matchupId]);
+      const suspended = !!(liveState.suspended && liveState.suspended[matchupName]);
       updateMlPill(matchupName, live.teamA, live.moneylineA, suspended);
       updateMlPill(matchupName, live.teamB, live.moneylineB, suspended);
       if (badge) {
@@ -2211,10 +2255,11 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
         const text = badge.querySelector(".live-badge-text");
         if (text) {
           text.textContent = suspended
-            ? "Live " + live.pointsA.toFixed(1) + "-" + live.pointsB.toFixed(1) + " — betting paused"
-            : "Live " + live.pointsA.toFixed(1) + "-" + live.pointsB.toFixed(1);
+            ? "Live " + live.impliedTotalA.toFixed(1) + "-" + live.impliedTotalB.toFixed(1) + " — betting paused"
+            : "Live " + live.impliedTotalA.toFixed(1) + "-" + live.impliedTotalB.toFixed(1);
         }
       }
+      renderLiveProps(matchupName, m.team_a, m.team_b);
     });
   }
 
@@ -2229,33 +2274,36 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
     if (!legId || legId.indexOf("|ML|") === -1) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (pill.classList.contains("suspended")) {
-      alert("Betting is paused on this game for a moment while the odds catch up — try again shortly.");
-      return;
-    }
+    if (pill.classList.contains("suspended")) { alertSuspended(); return; }
     const parts = legId.split("|ML|");
     if (parts.length !== 2) return;
     const [matchupName, teamName] = parts;
-    const m = BOARD_DATA.matchups[matchupName];
-    const live = findLiveEntry(m);
+    const live = (liveState.odds || {})[matchupName];
     if (!live) return;
-    openLiveBetModal(matchupName, teamName, live);
+    const odds = teamName === live.teamA ? live.moneylineA : live.moneylineB;
+    openLiveBetModal({ kind: "matchup", matchupName, teamName, side: teamName === live.teamA ? "A" : "B", odds, live });
   }, true);
 
-  function openLiveBetModal(matchupName, teamName, live) {
+  function openLiveBetModal(ctx) {
     if (!loadAuthUser()) {
       openAuthModal("", "login");
       return;
     }
-    const odds = teamName === live.teamA ? live.moneylineA : live.moneylineB;
-    liveBetContext = { matchupName, teamName, odds, live };
-    document.getElementById("live-bet-matchup").textContent = matchupName;
-    document.getElementById("live-bet-score").textContent =
-      live.teamA + " " + live.pointsA.toFixed(1) + " — " + live.teamB + " " + live.pointsB.toFixed(1);
-    document.getElementById("live-bet-team").textContent = teamName;
+    liveBetContext = ctx;
+    if (ctx.kind === "matchup") {
+      document.getElementById("live-bet-matchup").textContent = ctx.matchupName;
+      document.getElementById("live-bet-score").textContent =
+        ctx.live.teamA + " " + ctx.live.impliedTotalA.toFixed(1) + " — " + ctx.live.teamB + " " + ctx.live.impliedTotalB.toFixed(1);
+      document.getElementById("live-bet-team").textContent = ctx.teamName;
+    } else {
+      const prop = (liveState.props || {})[ctx.playerName] || {};
+      document.getElementById("live-bet-matchup").textContent = ctx.playerName + " — Player Prop";
+      document.getElementById("live-bet-score").textContent = "Line " + (prop.line || 0).toFixed(1) + " — currently at " + (prop.implied || 0).toFixed(1);
+      document.getElementById("live-bet-team").textContent = ctx.side + " " + (prop.line || 0).toFixed(1);
+    }
     const oddsEl = document.getElementById("live-bet-odds");
-    oddsEl.textContent = fmtOdds(odds);
-    oddsEl.className = "odds tabular " + oddsClass(odds);
+    oddsEl.textContent = fmtOdds(ctx.odds);
+    oddsEl.className = "odds tabular " + oddsClass(ctx.odds);
     document.getElementById("live-bet-error").classList.remove("show");
     document.getElementById("live-bet-stake-input").value = "10";
     updateLiveBetPayoutPreview();
@@ -2278,42 +2326,51 @@ const BOARD_DATA = {"week": 1, "matchups": {"CDZ NUTZ vs Mr. Big Chest": {"team_
   document.getElementById("live-bet-stake-input").addEventListener("input", updateLiveBetPayoutPreview);
   document.getElementById("live-bet-cancel").addEventListener("click", closeLiveBetModal);
 
-  document.getElementById("live-bet-confirm").addEventListener("click", () => {
+  document.getElementById("live-bet-confirm").addEventListener("click", async () => {
     if (!liveBetContext) return;
     const stake = parseFloat(document.getElementById("live-bet-stake-input").value);
+    const err = document.getElementById("live-bet-error");
     if (!stake || stake <= 0) {
-      const err = document.getElementById("live-bet-error");
       err.textContent = "Enter a stake.";
       err.classList.add("show");
       return;
     }
     const name = loadAuthUser();
-    const { matchupName, live } = liveBetContext;
-    jsonpRequest({
-      action: "liveBet",
-      matchupId: live.matchupId,
-      side: liveBetContext.teamName === live.teamA ? "A" : "B",
-      stake: stake.toFixed(2),
-      name,
-    }, (resp) => {
-      if (!resp || !resp.ok) {
-        const err = document.getElementById("live-bet-error");
-        err.textContent = (resp && resp.message) || "Something went wrong — please try again.";
-        err.classList.add("show");
-        pollLiveOdds(); // refresh in case the market moved/suspended since opening
-        return;
-      }
-      const entries = loadBetLog();
-      entries.unshift({
-        id: makeBetId(), name, stake: resp.stake, parlayOdds: resp.odds,
-        toWin: resp.toWin, payout: resp.payout, synced: true,
-        legs: [{ selectionLabel: resp.teamName + " (Live)", odds: resp.odds, matchup: matchupName }],
+    const ctx = liveBetContext;
+    const body = ctx.kind === "matchup"
+      ? { matchupName: ctx.matchupName, side: ctx.side, stake: stake.toFixed(2), name }
+      : { playerName: ctx.playerName, side: ctx.side, stake: stake.toFixed(2), name };
+
+    let resp;
+    try {
+      const r = await fetch(LIVE_SERVER_URL + "/bet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-      saveBetLog(entries);
-      renderMyBets();
-      closeLiveBetModal();
-      switchToTab("mybets");
+      resp = await r.json();
+    } catch (e) {
+      resp = { ok: false, message: "Couldn't reach the live server — please try again." };
+    }
+
+    if (!resp || !resp.ok) {
+      err.textContent = (resp && resp.message) || "Something went wrong — please try again.";
+      err.classList.add("show");
+      pollLiveOdds(); // refresh in case the market moved/suspended since opening
+      return;
+    }
+    const label = ctx.kind === "matchup" ? resp.teamName + " (Live)" : resp.playerName + " " + resp.side + " (Live Prop)";
+    const matchupLabel = ctx.kind === "matchup" ? ctx.matchupName : resp.playerName;
+    const entries = loadBetLog();
+    entries.unshift({
+      id: makeBetId(), name, stake: resp.stake, parlayOdds: resp.odds,
+      toWin: resp.toWin, payout: resp.payout, synced: true,
+      legs: [{ selectionLabel: label, odds: resp.odds, matchup: matchupLabel }],
     });
+    saveBetLog(entries);
+    renderMyBets();
+    closeLiveBetModal();
+    switchToTab("mybets");
   });
 
   function switchToTab(view) {
