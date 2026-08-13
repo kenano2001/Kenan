@@ -246,7 +246,8 @@ const DEMO = __DEMO_DATA_JSON__;
   "use strict";
   const START_KEY = "fantasize_demo_start_ts";
   const BETS_KEY = "fantasize_demo_bets";
-  const SUSPEND_SWING_THRESHOLD = 0.08;
+  const SUSPEND_SWING_THRESHOLD = 0.20;
+  const SUSPEND_MIN_MARGIN_DELTA = 12;
   const SUSPEND_DURATION_MS = 90 * 1000;
   const TEAM_SD = 29.0;
 
@@ -294,10 +295,13 @@ const DEMO = __DEMO_DATA_JSON__;
   }
 
   function liveSdFor(checkpoint) {
-    // Floor raised (vs the real Code.gs engine's 0.05) purely for demo
-    // display purposes -- keeps compressed blowouts from producing
-    // vertigo-inducing odds like -99900 on-screen.
-    const fractionRemaining = Math.max(0.12, 1 - checkpoint / (DEMO.numCheckpoints - 1));
+    // Floor raised well above the naive value -- a shrinking SD makes win
+    // probability increasingly sensitive to any point swing late in the
+    // game, and a floor that's too low (verified empirically: 0.12 caused
+    // suspensions on 35 of 75 checkpoint transitions across a full replay,
+    // roughly one every 3.75 real minutes) makes the market feel constantly
+    // paused instead of pausing for genuinely decisive moments.
+    const fractionRemaining = Math.max(0.35, 1 - checkpoint / (DEMO.numCheckpoints - 1));
     return TEAM_SD * Math.sqrt(fractionRemaining);
   }
 
@@ -314,6 +318,11 @@ const DEMO = __DEMO_DATA_JSON__;
     return winProb(ptsA - ptsB, liveSdFor(checkpoint));
   }
 
+  function marginAt(matchup, checkpoint) {
+    const [ptsA, ptsB] = teamTotals(matchup, Math.max(0, checkpoint));
+    return ptsA - ptsB;
+  }
+
   function checkpointStartTime(checkpoint) {
     return getStart() + checkpoint * DEMO.checkpointIntervalMs;
   }
@@ -322,7 +331,8 @@ const DEMO = __DEMO_DATA_JSON__;
     if (checkpoint <= 0) return { suspended: false, justSwung: false };
     const prevP = winProbAt(matchup, checkpoint - 1);
     const curP = winProbAt(matchup, checkpoint);
-    const swungThisCheckpoint = Math.abs(curP - prevP) >= SUSPEND_SWING_THRESHOLD;
+    const marginDelta = Math.abs(marginAt(matchup, checkpoint) - marginAt(matchup, checkpoint - 1));
+    const swungThisCheckpoint = Math.abs(curP - prevP) >= SUSPEND_SWING_THRESHOLD && marginDelta >= SUSPEND_MIN_MARGIN_DELTA;
     if (!swungThisCheckpoint) return { suspended: false, justSwung: false };
     const withinWindow = now - checkpointStartTime(checkpoint) < SUSPEND_DURATION_MS;
     return { suspended: withinWindow, justSwung: true };
