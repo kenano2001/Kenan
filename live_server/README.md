@@ -48,21 +48,19 @@ Then `curl http://localhost:8787/live` to see current pricing, or
 
 ## Regenerating roster.json
 
-If the rosters change, regenerate from the Python source of truth:
+`roster.json` is a static snapshot the engine loads at startup -- it does
+NOT auto-update from Sleeper on its own. Regenerate it from real current
+Sleeper lineups (falls back to manual "Lineup Overrides" sheet entries
+where present) and push to redeploy:
 
     cd ..
-    python3 -c "
-    import json
-    import odds_model
-    teams = odds_model.week1_teams()
-    roster = {}
-    matchups = []
-    for name, ta, tb in teams:
-        roster[ta.team_name] = [{'name': p.name, 'sleeper_id': p.sleeper_id, 'position': p.position} for p in ta.starters]
-        roster[tb.team_name] = [{'name': p.name, 'sleeper_id': p.sleeper_id, 'position': p.position} for p in tb.starters]
-        matchups.append({'name': name, 'teamA': ta.team_name, 'teamB': tb.team_name})
-    json.dump({'roster': roster, 'matchups': matchups}, open('live_server/roster.json', 'w'), indent=2)
-    "
+    python3 regenerate_live_roster.py
+    git add live_server/roster.json && git commit -m "Refresh live roster" && git push
+
+This also runs automatically as part of the scheduled lineup-check
+routine (see repo root), which detects real lineup changes and pushes an
+updated roster.json (Render auto-redeploys) so in-game pricing doesn't go
+stale.
 
 ## Each new week
 
