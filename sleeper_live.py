@@ -19,10 +19,12 @@ scores rather than projections — see live_odds.gs.
 
 from __future__ import annotations
 import json
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from nfl_weather import fetch_forecast, weather_adjustment
@@ -30,8 +32,19 @@ from odds_model import Player, TeamLineup
 
 USER_AGENT = "fantasize-odds-model (contact: kenano2001@gmail.com)"
 
+LEAGUE_ID = "1312211986242621440"  # "The Mode"
+
 SLEEPER_PROJECTIONS_URL = "https://api.sleeper.app/projections/nfl/{season}/{week}?season_type=regular"
+SLEEPER_ROSTERS_URL = "https://api.sleeper.app/v1/league/{league_id}/rosters"
+SLEEPER_USERS_URL = "https://api.sleeper.app/v1/league/{league_id}/users"
+SLEEPER_MATCHUPS_URL = "https://api.sleeper.app/v1/league/{league_id}/matchups/{week}"
+SLEEPER_PLAYERS_URL = "https://api.sleeper.app/v1/players/nfl"
 ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?week={week}&seasontype=2&year={season}"
+
+# Sleeper's full player dump is ~15MB and only changes daily -- cache it to
+# disk instead of refetching every run. Not checked into git (see .gitignore).
+PLAYERS_CACHE_PATH = Path(__file__).parent / ".sleeper_players_cache.json"
+PLAYERS_CACHE_MAX_AGE_HOURS = 24
 
 # The Apps Script deployment already used for auth/bet-logging also serves
 # a read-only ?action=overrides endpoint for the "Lineup Overrides" sheet
@@ -95,6 +108,99 @@ def fetch_schedule(season: str, week: int) -> dict[str, dict]:
             if away_abbr:
                 out[away_abbr] = {"kickoff": kickoff, "opponent": home_abbr, "venue_team": home_abbr}
     return out
+
+
+def _load_players_cache() -> dict:
+    if PLAYERS_CACHE_PATH.exists():
+        age_hours = (time.time() - PLAYERS_CACHE_PATH.stat().st_mtime) / 3600
+        if age_hours < PLAYERS_CACHE_MAX_AGE_HOURS:
+            try:
+                return json.loads(PLAYERS_CACHE_PATH.read_text())
+            except (json.JSONDecodeError, OSError):
+                pass
+    data = _http_get_json(SLEEPER_PLAYERS_URL)
+    if not isinstance(data, dict):
+        return {}
+    try:
+        PLAYERS_CACHE_PATH.write_text(json.dumps(data))
+    except OSError:
+        pass
+    return data
+
+
+def _team_name_by_roster_id(league_id: str) -> dict[int, str]:
+    rosters = _http_get_json(SLEEPER_ROSTERS_URL.format(league_id=league_id)) or []
+    users = _http_get_json(SLEEPER_USERS_URL.format(league_id=league_id)) or []
+    user_by_id = {u["user_id"]: u for u in users}
+    out = {}
+    for r in rosters:
+        owner = user_by_id.get(r.get("owner_id"), {})
+        meta = owner.get("metadata") or {}
+        name = meta.get("team_name") or owner.get("display_name") or f"roster{r['roster_id']}"
+        out[r["roster_id"]] = name.strip()
+    return out
+
+
+def _player_display(pid: str, players: dict) -> tuple[str, str]:
+    """(display_name, position) for a Sleeper player_id, including DEF entries (keyed by team abbreviation)."""
+    meta = players.get(pid) or {}
+    position = meta.get("position", "")
+    if position == "DEF":
+        return f"{meta.get('team', pid)} DEF", "DEF"
+    first, last = meta.get("first_name", ""), meta.get("last_name", "")
+    name = (f"{first} {last}".strip()) if (first or last) else pid
+    return name, position
+
+
+def fetch_real_starters(week: int, league_id: str = LEAGUE_ID) -> dict[str, list[dict]]:
+    """
+    team_name -> starter list (name/sleeper_id/position), read directly from
+    each manager's actual live Sleeper lineup for this week -- the same
+    lineup they set in the Sleeper app, no manual entry required.
+    """
+    matchups = _http_get_json(SLEEPER_MATCHUPS_URL.format(league_id=league_id, week=week))
+    if not isinstance(matchups, list):
+        return {}
+    team_names = _team_name_by_roster_id(league_id)
+    players = _load_players_cache()
+
+    out = {}
+    for m in matchups:
+        team_name = team_names.get(m.get("roster_id"))
+        starters = [pid for pid in (m.get("starters") or []) if pid and pid != "0"]
+        if not team_name or not starters:
+            continue
+        out[team_name] = [
+            {"name": (d := _player_display(pid, players))[0], "sleeper_id": pid, "position": d[1]}
+            for pid in starters
+        ]
+    return out
+
+
+def apply_real_lineups(teams: list[tuple[str, TeamLineup, TeamLineup]], week: int, league_id: str = LEAGUE_ID) -> list[str]:
+    """
+    Replaces each team's starters with whatever that manager has actually
+    set as their live Sleeper lineup for this week. This is the default
+    lineup source now -- call apply_lineup_overrides() afterward so a manual
+    override (private-league edge cases Sleeper doesn't capture correctly)
+    still wins if one is on file for that team/week.
+    """
+    real = fetch_real_starters(week, league_id)
+    if not real:
+        return []
+    notes = []
+    for _, team_a, team_b in teams:
+        for team in (team_a, team_b):
+            starters = real.get(team.team_name.strip())
+            if not starters:
+                continue
+            names = ", ".join(r["name"] for r in starters)
+            notes.append(f"{team.team_name}: lineup set from live Sleeper starters -- {names}")
+            team.starters = [
+                Player(name=r["name"], position=r["position"], projection=0.0, sleeper_id=r["sleeper_id"])
+                for r in starters
+            ]
+    return notes
 
 
 def fetch_lineup_overrides(week: int) -> dict[str, list[dict]]:

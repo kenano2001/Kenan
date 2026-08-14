@@ -82,7 +82,9 @@ def build_board(live: bool = False) -> dict:
 
     teams = week1_teams()
     if live:
-        from sleeper_live import apply_lineup_overrides, apply_live_data
+        from sleeper_live import apply_real_lineups, apply_lineup_overrides, apply_live_data
+        for note in apply_real_lineups(teams, week=1):
+            print(f"[live] {note}")
         for note in apply_lineup_overrides(teams, week=1):
             print(f"[live] {note}")
         for note in apply_live_data(teams, season="2026", week=1):
