@@ -194,8 +194,15 @@ def apply_real_lineups(teams: list[tuple[str, TeamLineup, TeamLineup]], week: in
             starters = real.get(team.team_name.strip())
             if not starters:
                 continue
-            names = ", ".join(r["name"] for r in starters)
-            notes.append(f"{team.team_name}: lineup set from live Sleeper starters -- {names}")
+            old_by_id = {p.sleeper_id: p.name for p in team.starters if p.sleeper_id}
+            new_by_id = {r["sleeper_id"]: r["name"] for r in starters}
+            out_names = [old_by_id[pid] for pid in old_by_id if pid not in new_by_id]
+            in_names = [new_by_id[pid] for pid in new_by_id if pid not in old_by_id]
+            if out_names or in_names:
+                diff = []
+                if out_names: diff.append("OUT: " + ", ".join(out_names))
+                if in_names: diff.append("IN: " + ", ".join(in_names))
+                notes.append(f"{team.team_name}: lineup change -- {'; '.join(diff)}")
             team.starters = [
                 Player(name=r["name"], position=r["position"], projection=0.0, sleeper_id=r["sleeper_id"])
                 for r in starters
