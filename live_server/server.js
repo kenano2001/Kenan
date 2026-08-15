@@ -115,6 +115,23 @@ const server = http.createServer((req, res) => {
     req.on("end", () => { handleBet(req, res, body).catch((e) => sendJson(res, 500, { ok: false, message: e.message })); });
     return;
   }
+  if (req.method === "POST" && req.url.startsWith("/pregame-check")) {
+    // Called right before a pregame bet is committed, to catch a lineup/
+    // trade change that happened after the static site was last built.
+    // Not a price recompute -- just "has the roster this bet depends on
+    // changed since the page loaded," so a stale board can't be bet into.
+    let body = "";
+    req.on("data", (c) => { body += c; });
+    req.on("end", () => {
+      let payload;
+      try { payload = JSON.parse(body); } catch (e) { return sendJson(res, 400, { ok: false, message: "Bad request body." }); }
+      const names = Array.isArray(payload.matchupNames) ? payload.matchupNames : [];
+      engine.checkLineupFreshness(names)
+        .then((stale) => sendJson(res, 200, { ok: true, stale }))
+        .catch((e) => sendJson(res, 500, { ok: false, message: e.message }));
+    });
+    return;
+  }
   setCors(res);
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ error: "not found" }));

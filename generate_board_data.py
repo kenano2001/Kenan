@@ -81,17 +81,19 @@ def build_board(live: bool = False) -> dict:
     power_scores, win_totals, playoff_probs = week1_season_inputs()
 
     teams = week1_teams()
+    lock_times: dict[str, str | None] = {}
     if live:
-        from sleeper_live import apply_real_lineups, apply_lineup_overrides, apply_live_data
+        from sleeper_live import apply_real_lineups, apply_lineup_overrides, apply_live_data, compute_matchup_lock_times
         for note in apply_real_lineups(teams, week=1):
             print(f"[live] {note}")
         for note in apply_lineup_overrides(teams, week=1):
             print(f"[live] {note}")
         for note in apply_live_data(teams, season="2026", week=1):
             print(f"[live] {note}")
+        lock_times = compute_matchup_lock_times(teams, week=1)
 
     matchups = {
-        name: build_matchup_entry(name, team_a, team_b)
+        name: {**build_matchup_entry(name, team_a, team_b), "lock_at": lock_times.get(name)}
         for name, team_a, team_b in teams
     }
 

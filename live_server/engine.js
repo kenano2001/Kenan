@@ -66,6 +66,32 @@ async function ensureRosterIdMap() {
   return map;
 }
 
+// Called at pregame bet-placement time (not on the 20s poll loop) to catch
+// a lineup/trade change that happened after the static site was last built
+// but before the next scheduled rebuild -- the exact window someone with
+// advance knowledge of their own roster move could otherwise bet into at
+// stale, pre-change odds.
+async function checkLineupFreshness(matchupNames) {
+  const [idMap, currentStarters] = await Promise.all([
+    ensureRosterIdMap(),
+    sleeper.fetchCurrentStarters(CURRENT_WEEK),
+  ]);
+  const stale = [];
+  for (const name of matchupNames) {
+    const m = ROSTER.matchups.find((mm) => mm.name === name);
+    if (!m) continue;
+    for (const teamName of [m.teamA, m.teamB]) {
+      const rosterId = Object.keys(idMap).find((rid) => idMap[rid] === teamName);
+      if (!rosterId) continue;
+      const expected = new Set((ROSTER.roster[teamName] || []).map((p) => p.sleeper_id));
+      const current = new Set(currentStarters[rosterId] || []);
+      const same = expected.size === current.size && [...expected].every((id) => current.has(id));
+      if (!same) { stale.push(name); break; }
+    }
+  }
+  return stale;
+}
+
 async function getProjections() {
   const now = Date.now();
   if (cachedProjections && now - cachedProjectionsAt < PROJECTIONS_REFRESH_MS) return cachedProjections;
@@ -161,4 +187,4 @@ function start() {
   }, POLL_INTERVAL_MS);
 }
 
-module.exports = { start, getState, pollOnce, SUSPEND_DURATION_MS };
+module.exports = { start, getState, pollOnce, checkLineupFreshness, SUSPEND_DURATION_MS };

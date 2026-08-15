@@ -23,7 +23,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -66,6 +66,30 @@ def _http_get_json(url: str) -> Optional[object]:
         return None
 
 
+def _curl_get_json(url: str) -> Optional[object]:
+    """
+    ESPN's scoreboard endpoint blocks non-browser HTTP clients that
+    identify themselves -- Python's urllib, Node's https/fetch, and even
+    curl with a custom -A User-Agent all get a genuine 403/edge-WAF
+    "Access Denied" from this specific endpoint. Bare curl (its own
+    default UA string) gets through reliably (verified directly; see also
+    live_server/espn.js, which shells out to curl the same way with no
+    -A flag). Sleeper's own endpoints have no such issue and keep using
+    _http_get_json.
+    """
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["curl", "-sS", "--max-time", "20", url],
+            capture_output=True, text=True, timeout=25,
+        )
+        if result.returncode != 0 or not result.stdout:
+            return None
+        return json.loads(result.stdout)
+    except (subprocess.SubprocessError, OSError, ValueError):
+        return None
+
+
 def fetch_projections(season: str, week: int) -> dict[str, dict]:
     """sleeper_id -> {"pts": float|None, "injury_status": str|None}"""
     data = _http_get_json(SLEEPER_PROJECTIONS_URL.format(season=season, week=week))
@@ -88,7 +112,7 @@ def fetch_projections(season: str, week: int) -> dict[str, dict]:
 
 def fetch_schedule(season: str, week: int) -> dict[str, dict]:
     """team_abbr -> {"kickoff": datetime, "opponent": str}"""
-    data = _http_get_json(ESPN_SCOREBOARD_URL.format(season=season, week=week))
+    data = _curl_get_json(ESPN_SCOREBOARD_URL.format(season=season, week=week))
     if not data:
         return {}
     out = {}
@@ -306,3 +330,41 @@ def apply_live_data(
                         notes.append(f"{player.name}: weather adj x{adj:.2f} ({before:.2f} -> {player.projection:.2f})")
 
     return notes
+
+
+def compute_matchup_lock_times(
+    teams: list[tuple[str, TeamLineup, TeamLineup]],
+    week: int,
+    season: str = "2026",
+    buffer_minutes: int = 30,
+) -> dict[str, Optional[str]]:
+    """
+    matchup_name -> ISO8601 UTC timestamp, `buffer_minutes` before the
+    EARLIEST real-NFL kickoff among any starter on either team in that
+    matchup. Pregame betting on a matchup should close at this time and
+    not reopen until the live server has real in-game odds for it --
+    otherwise a lineup change or trade minutes before kickoff could be
+    bet on at stale, pre-change odds. None if kickoff times for this
+    matchup's players couldn't be determined (e.g. schedule fetch failed).
+    """
+    schedule = fetch_schedule(season, week)
+    players = _load_players_cache()
+    out: dict[str, Optional[str]] = {}
+    for name, team_a, team_b in teams:
+        kickoffs = []
+        for team in (team_a, team_b):
+            for player in team.starters:
+                if not player.sleeper_id:
+                    continue
+                nfl_team = (players.get(player.sleeper_id) or {}).get("team")
+                if not nfl_team:
+                    continue
+                game = schedule.get(nfl_team)
+                if game and game.get("kickoff"):
+                    kickoffs.append(game["kickoff"])
+        if not kickoffs:
+            out[name] = None
+            continue
+        lock_at = min(kickoffs) - timedelta(minutes=buffer_minutes)
+        out[name] = lock_at.astimezone(timezone.utc).isoformat()
+    return out

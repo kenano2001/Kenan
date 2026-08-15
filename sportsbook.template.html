@@ -773,6 +773,18 @@
   .pill.live .pill-odds { position: relative; }
   .pill.suspended { opacity: 0.55; cursor: default; }
 
+  .kickoff-lock-badge {
+    display: none;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: var(--warn);
+    margin-top: 4px;
+  }
+  .card.betting-locked .kickoff-lock-badge { display: block; }
+  .card.betting-locked .pill { opacity: 0.4; pointer-events: none; }
+  .card.betting-locked .expander-toggle { opacity: 0.6; }
+
   .live-props {
     display: none;
     padding: 10px 6px 4px;
@@ -1549,15 +1561,39 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   /* ---------------- bet slip state ---------------- */
   const slip = new Map(); // id -> leg
 
+  // A matchup closes to new pregame bets a buffer window before its
+  // earliest real kickoff (BOARD_DATA's lock_at, set by the live refresh
+  // pipeline) and doesn't reopen until the live server has real in-game
+  // odds for it -- otherwise a last-second lineup swap could be bet on at
+  // stale, pre-swap odds during the gap before the next scheduled rebuild.
+  function isMatchupLocked(matchupName) {
+    const m = BOARD_DATA.matchups[matchupName];
+    if (!m || !m.lock_at) return false;
+    if ((liveState.odds || {})[matchupName]) return false; // live odds already up -- not locked, just live now
+    return Date.now() >= new Date(m.lock_at).getTime();
+  }
+
   function toggleLeg(leg) {
     if (slip.has(leg.id)) {
       slip.delete(leg.id);
     } else {
+      if (isMatchupLocked(leg.matchup)) {
+        alert("Betting on " + leg.matchup + " is closed until kickoff — live odds will be available once the game starts.");
+        return;
+      }
       for (const [k, v] of slip) { if (v.group === leg.group) slip.delete(k); }
       slip.set(leg.id, leg);
     }
     renderSlip();
     syncPillStates();
+  }
+
+  function updateKickoffLocks() {
+    Object.keys(BOARD_DATA.matchups).forEach((matchupName) => {
+      const card = document.querySelector('.card[data-matchup="' + CSS.escape(matchupName) + '"]');
+      if (!card) return;
+      card.classList.toggle("betting-locked", isMatchupLocked(matchupName));
+    });
   }
 
   function syncPillStates() {
@@ -1641,6 +1677,9 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
       el("div", { class: "live-badge", id: "live-badge|" + name }, [
         el("span", { class: "dot" }),
         el("span", { class: "live-badge-text" }),
+      ]),
+      el("div", { class: "kickoff-lock-badge" }, [
+        el("span", { text: "🔒 Betting closed until kickoff — live odds coming soon" }),
       ]),
       el("div", { class: "market-cols-head" }, [
         el("span", { text: "Team" }),
@@ -2129,7 +2168,37 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
     // click, mutating it here wouldn't reliably redirect the navigation.
   });
 
-  document.getElementById("place-bet-btn").addEventListener("click", function () {
+  // Guards against betting into a lineup/trade change that happened after
+  // this static page was last built but before the next scheduled rebuild
+  // catches it -- asks the always-on server (which can check Sleeper in
+  // real time) whether any matchup this slip touches has actually changed.
+  // Fails open (allows the bet) if the server is unconfigured, cold-
+  // starting, or briefly unreachable -- a network hiccup shouldn't block
+  // ordinary betting, and the kickoff-lock + hourly rebuild remain as the
+  // other two layers of defense.
+  async function checkLineupsFresh(matchupNames, btn) {
+    if (!LIVE_SERVER_URL || LIVE_SERVER_URL.indexOf("REPLACE") !== -1 || !matchupNames.length) return [];
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Checking odds…";
+    try {
+      const resp = await fetch(LIVE_SERVER_URL + "/pregame-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchupNames }),
+      });
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return data.stale || [];
+    } catch (e) {
+      return [];
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  document.getElementById("place-bet-btn").addEventListener("click", async function () {
     if (slip.size === 0) return;
     const name = loadAuthUser();
     if (!name) {
@@ -2137,11 +2206,18 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
       return;
     }
 
+    const totals = computeTotals();
+    const matchupNames = [...new Set(totals.legs.map((l) => l.matchup))];
+    const stale = await checkLineupsFresh(matchupNames, this);
+    if (stale.length) {
+      alert("Lineups just changed for " + stale.join(", ") + " — odds are being recalculated. Please refresh the page and try again in a minute.");
+      return;
+    }
+
     // Placing a bet is purely local — instant, no round trip. Syncing to
     // the shared spreadsheet is a separate, explicit step from My Bets
     // (individually or all at once), so a bet doesn't force a redirect
     // the moment it's placed.
-    const totals = computeTotals();
     const bet = {
       id: makeBetId(),
       name: name,
@@ -2238,6 +2314,7 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   }
 
   function renderLiveOverlays() {
+    updateKickoffLocks();
     if (liveState.mode !== "live") {
       // No real game is in progress -- leave the page exactly as it was
       // pregame: no Live badge, no ML pill overrides, no unboxed props
@@ -2404,6 +2481,8 @@ const BOARD_DATA = __BOARD_DATA_JSON__;
   renderMyBets();
   renderAccount();
   startLivePolling();
+  updateKickoffLocks();
+  setInterval(updateKickoffLocks, 15000);
 
   // Restore picks made before an interrupted login round trip.
   loadSlipEntries().forEach(([id, leg]) => slip.set(id, leg));

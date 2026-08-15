@@ -48,4 +48,14 @@ async function fetchProjections(season, week) {
   return out;
 }
 
-module.exports = { fetchLiveMatchups, fetchProjections, LEAGUE_ID };
+/** roster_id -> [sleeper_id, ...] of that roster's current real starters for the given week. */
+async function fetchCurrentStarters(week) {
+  const data = await getJson(`https://api.sleeper.app/v1/league/${LEAGUE_ID}/matchups/${week}`);
+  const out = {};
+  for (const r of data) {
+    out[r.roster_id] = (r.starters || []).filter((pid) => pid && pid !== "0");
+  }
+  return out;
+}
+
+module.exports = { fetchLiveMatchups, fetchProjections, fetchCurrentStarters, LEAGUE_ID };
