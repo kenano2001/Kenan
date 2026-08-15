@@ -190,44 +190,44 @@
     ],
     "Buc-cee's": [
       {
-        "name": "Burrow",
+        "name": "Joe Burrow",
         "sleeper_id": "6770",
         "position": "QB"
       },
       {
-        "name": "Purdy",
-        "sleeper_id": "8183",
-        "position": "QB"
-      },
-      {
-        "name": "Cook",
+        "name": "James Cook",
         "sleeper_id": "8138",
         "position": "RB"
       },
       {
-        "name": "Irving",
+        "name": "Bucky Irving",
         "sleeper_id": "11584",
         "position": "RB"
       },
       {
-        "name": "Skattebo",
-        "sleeper_id": "12481",
-        "position": "RB"
-      },
-      {
-        "name": "Harrison",
+        "name": "Marvin Harrison",
         "sleeper_id": "11628",
         "position": "WR"
       },
       {
-        "name": "Nacua",
-        "sleeper_id": "9493",
+        "name": "DJ Moore",
+        "sleeper_id": "4983",
         "position": "WR"
       },
       {
-        "name": "LaPorta",
+        "name": "Sam LaPorta",
         "sleeper_id": "10859",
         "position": "TE"
+      },
+      {
+        "name": "Cam Skattebo",
+        "sleeper_id": "12481",
+        "position": "RB"
+      },
+      {
+        "name": "Brock Purdy",
+        "sleeper_id": "8183",
+        "position": "QB"
       },
       {
         "name": "SF DEF",

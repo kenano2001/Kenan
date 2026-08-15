@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Optional
 
 from nfl_weather import fetch_forecast, weather_adjustment
-from odds_model import Player, TeamLineup
+from odds_model import Player, TeamLineup, week1_teams
 
 USER_AGENT = "fantasize-odds-model (contact: kenano2001@gmail.com)"
 
@@ -152,16 +152,37 @@ def _load_players_cache() -> dict:
     return data
 
 
+def _normalize_team_name(name: str) -> str:
+    """Sleeper's team_name metadata (a manager can type whatever they want)
+    doesn't always byte-match odds_model.py's hardcoded team names -- e.g.
+    a manager's real name uses a curly apostrophe ('Buc-cee’s') where
+    the hardcoded roster used a straight one ('Buc-cee's'), which silently
+    broke every real-lineup lookup for that team. Normalize before matching."""
+    return (name or "").replace("’", "'").strip().lower()
+
+
+def _canonical_team_names() -> list[str]:
+    names = []
+    for _, team_a, team_b in week1_teams():
+        names.append(team_a.team_name)
+        names.append(team_b.team_name)
+    return names
+
+
 def _team_name_by_roster_id(league_id: str) -> dict[int, str]:
+    """roster_id -> the odds_model.py CANONICAL team name (not Sleeper's raw
+    metadata string) whenever a normalized match is found, so every caller
+    downstream can compare/index by exact string without re-normalizing."""
     rosters = _http_get_json(SLEEPER_ROSTERS_URL.format(league_id=league_id)) or []
     users = _http_get_json(SLEEPER_USERS_URL.format(league_id=league_id)) or []
     user_by_id = {u["user_id"]: u for u in users}
+    canon_by_norm = {_normalize_team_name(n): n for n in _canonical_team_names()}
     out = {}
     for r in rosters:
         owner = user_by_id.get(r.get("owner_id"), {})
         meta = owner.get("metadata") or {}
-        name = meta.get("team_name") or owner.get("display_name") or f"roster{r['roster_id']}"
-        out[r["roster_id"]] = name.strip()
+        raw_name = (meta.get("team_name") or owner.get("display_name") or f"roster{r['roster_id']}").strip()
+        out[r["roster_id"]] = canon_by_norm.get(_normalize_team_name(raw_name), raw_name)
     return out
 
 

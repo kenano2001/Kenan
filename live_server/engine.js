@@ -21,6 +21,10 @@ const PROJECTIONS_REFRESH_MS = 30 * 60 * 1000; // pregame projections change slo
 // comes from Sleeper's own rosters endpoint the first time we need it).
 let rosterIdToTeam = null;
 
+function normalizeTeamName(name) {
+  return (name || "").replace(/’/g, "'").trim().toLowerCase();
+}
+
 let state = {
   odds: {}, // matchupName -> { teamA, teamB, impliedTotalA, impliedTotalB, winProbA, moneylineA, moneylineB, sd, updatedAt }
   props: {}, // playerName -> { line, over, under, implied, updatedAt }
@@ -58,8 +62,11 @@ async function ensureRosterIdMap() {
   const map = {};
   for (const r of data) {
     const name = (uidToName[r.owner_id] || "").trim();
-    // roster.json's team names are the source of truth; match by trimmed name.
-    const match = Object.keys(ROSTER.roster).find((t) => t.trim() === name);
+    // roster.json's team names are the source of truth; match normalized
+    // (a manager's real Sleeper team_name can use different punctuation --
+    // e.g. a curly apostrophe -- than the hardcoded roster, which silently
+    // broke this match for one team until this normalization was added).
+    const match = Object.keys(ROSTER.roster).find((t) => normalizeTeamName(t) === normalizeTeamName(name));
     if (match) map[r.roster_id] = match;
   }
   rosterIdToTeam = map;
